@@ -1,0 +1,28 @@
+name: debug  # Experiment name to save in the logger
+seed: 42  # Random seed for reproducibility
+num_epochs: 50  # Number of epochs to train the model
+learning_rate: 0.0001
+accumulation_steps: 1
+do_train: true
+do_eval_on_train: false  # Run evaluation on train set in the end of every epoch
+do_eval: true  # Evaluate on dev set at the end of every epoch
+do_test: false  # Evaluate on test set at the end of training
+
+data_args:
+  max_seq_length: 64
+  batch_size: 1
+  shuffle: True
+  eval_batch_size: 1  # Batch size for evaluation
+
+model_args:
+  output_size: 5  # Should correspond to the number of classes
+  dropout: 0.5  # Dropout of the final classifier in the model
+  lstm_args:
+    input_size: 50  # Size of the input to the LSTM
+    hidden_size : 256  # Size of the hidden state of the LSTM
+    num_layers: 3
+    bias: true
+    batch_first: true
+    dropout: 0.2
+    bidirectional: true
+    proj_size: 0

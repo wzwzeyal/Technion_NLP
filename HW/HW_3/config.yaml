@@ -5,7 +5,7 @@ learning_rate: 0.0001
 accumulation_steps: 1
 do_train: true
 do_eval_on_train: false  # Run evaluation on train set in the end of every epoch
-do_eval: true  # Evaluate on dev set at the end of every epoch
+do_eval: false  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
 
 data_args:
@@ -24,5 +24,5 @@ model_args:
     bias: true
     batch_first: true
     dropout: 0.2
-    bidirectional: true
+    bidirectional: false
     proj_size: 0

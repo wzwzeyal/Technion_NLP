@@ -72,12 +72,15 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
         loss = loss_fn(logits, labels)
 
         # Backpropagation
-        optimizer.zero_grad()
+        # optimizer.zero_grad()
         loss.backward()
 
         # accumulate gradients: preform a optimization step every training_args.accumulate_grad_batches iterations, or when you reach the end of the epoch
         # Remember: iter_num starts at 0. If you set training_args.accumulate_grad_batches to 3, you want to preform your first optimization at the third iteration.
 
+        if ((iter_num + 1) % training_args.accumulation_steps == 0) or (iter_num + 1 == len(dataloader)):
+            optimizer.step()
+            optimizer.zero_grad()
 
         # Log loss
         wandb.log({"train_loop_loss": loss, EPOCH: epoch, ITERATION: iter_num})

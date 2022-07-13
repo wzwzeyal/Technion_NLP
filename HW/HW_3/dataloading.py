@@ -45,13 +45,18 @@ class TweetDataset(Dataset):
 
     def __len__(self):
         # Return the length of the dataset
-        return self.vocab_size
+        return len(self.df)
 
     def __getitem__(self, idx):
+        print(idx)
         # Get the row at idx
 
         # return the input_ids and the label as tensors, make sure to convert the label type to a long
-        input_ids, label = self.df.iloc[INPUT_IDS], self.df.iloc[LABEL]
+        # print(type(idx))
+        # row = self.df.iloc[idx]
+        input_ids = self.df.at[idx, INPUT_IDS]
+        label = self.df.at[idx, LABEL]
+
         return torch.tensor(input_ids), torch.tensor(label, dtype=torch.long)
 
     def tokenize(self, text):

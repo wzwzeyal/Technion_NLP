@@ -118,6 +118,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train an LSTM model on the IMDB dataset.')
     parser.add_argument('--config', default='config.yaml', type=str,
                         help='Path to YAML config file. Defualt: config.yaml')
+
+
+
+    # with open('config.yaml', 'r') as stream:
+    #     config_vars = yaml.safe_load(stream)
+    #     pprint(config_vars)
+    #     pass
+
+    parser.add_argument('--learning_rate', default=1, type=float,
+                        help='learning_rate')
+
+    parser.add_argument('--accumulation_steps', default=1, type=int,
+                        help='accumulation_steps')
+
+    parser.add_argument('--hidden_size', default=1, type=int,
+                        help='hidden_size')
+
+    parser.add_argument('--num_layers', default=1, type=int,
+                        help='num_layers')
+
     args = parser.parse_args()
 
     with open(args.config) as f:

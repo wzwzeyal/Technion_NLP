@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-# https://towardsdatascience.com/multiclass-text-classification-using-lstm-in-pytorch-eac56baed8df
-
 class TweetNet(nn.Module):
     def __init__(self, model_args, vocab_size):
         super(TweetNet, self).__init__()

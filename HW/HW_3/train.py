@@ -19,7 +19,7 @@ from consts import *
 
 def train(training_args):
     # Setting up logging
-    wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args)
+    wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="wzeyal")
 
     pprint(training_args)
 
@@ -43,6 +43,7 @@ def train(training_args):
     print("Initializing model")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = TweetNet(model_args, train_dataset.vocab_size).to(device)
+    wandb.watch(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()
 

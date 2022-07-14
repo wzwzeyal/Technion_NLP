@@ -1,7 +1,7 @@
+import gensim
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
-import pandas as pd
-import gensim
 
 from consts import *
 
@@ -12,9 +12,9 @@ class TweetDataset(Dataset):
         self.file_path = file_path
 
         # Load data to dataframe
-        self.df = pd.read_csv(self.file_path)
+        self.df = pd.read_csv(self.file_path).head(100)
 
-        assert self.df.columns.tolist() == [TEXT, LABEL]
+        # assert self.df.columns.tolist() == [TEXT, LABEL]
 
         # Get vocab
         if vocab is None:
@@ -41,21 +41,18 @@ class TweetDataset(Dataset):
 
         # Tokenize data using the tokenize function
         self.df[INPUT_IDS] = self.df.apply(lambda row: self.tokenize(row[TEXT]), axis=1)
-        print(self.df.iloc[0])
+        # print(self.df.iloc[0])
 
     def __len__(self):
         # Return the length of the dataset
         return len(self.df)
 
     def __getitem__(self, idx):
-        print(idx)
-        # Get the row at idx
 
         # return the input_ids and the label as tensors, make sure to convert the label type to a long
-        # print(type(idx))
-        # row = self.df.iloc[idx]
-        input_ids = self.df.at[idx, INPUT_IDS]
-        label = self.df.at[idx, LABEL]
+
+        input_ids = self.df.iloc[idx][INPUT_IDS]
+        label = self.df.iloc[idx][LABEL]
 
         return torch.tensor(input_ids), torch.tensor(label, dtype=torch.long)
 
@@ -67,6 +64,10 @@ class TweetDataset(Dataset):
                 break
             # Gets the token id, if unknown returns self.unk_token
 
-            input_ids.append(self.token2id[token] if token in self.token2id.keys() else self.unk_token)
+            input_ids.append(
+                self.token2id[token]
+                if token in self.token2id.keys()
+                else self.token2id[self.unk_token]
+            )
 
         return input_ids

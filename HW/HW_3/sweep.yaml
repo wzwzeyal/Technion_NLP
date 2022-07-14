@@ -8,9 +8,9 @@ parameters:
   learning_rate:
     min: 0.00001
     max: 0.1
-  accumulation_steps:
-    values: [1, 2, 4, 8, 16]
-  hidden_size:
-    values: [32, 64, 128, 256, 512]
-  num_layers:
-    values: [1, 2, 3, 4, 5]
+#  accumulation_steps:
+#    values: [1, 2, 4, 8, 16]
+#  hidden_size:
+#    values: [32, 64, 128, 256, 512]
+#  num_layers:
+#    values: [1, 2, 3, 4, 5]

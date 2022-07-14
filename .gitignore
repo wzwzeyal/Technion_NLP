@@ -127,5 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# wandb
+/wandb/
 /HW/HW_3/wandb/
-/wandb/sweep-q2yqoabp/

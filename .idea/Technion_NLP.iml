@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/wandb" />
       <excludeFolder url="file://$MODULE_DIR$/wandb/sweep-q2yqoabp" />
+      <excludeFolder url="file://$MODULE_DIR$/HW/HW_3/wandb" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (Technion_NLP)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

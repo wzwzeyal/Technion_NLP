@@ -1,13 +1,13 @@
-name: Tweet  # Experiment name to save in the logger
+name: Tweet1.1  # Experiment name to save in the logger
 seed: 42  # Random seed for reproducibility
-num_epochs: 50   # Number of epochs to train the model
+num_epochs: 2   # Number of epochs to train the model
 learning_rate: 0.0001
 accumulation_steps: 1
 do_train: true
 do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
-seq_model_name: RNN
+seq_model_name: GRU
 
 data_args:
   max_seq_length: 64
@@ -21,20 +21,6 @@ model_args:
   seq_args:
     hidden_size: 256  # Size of the hidden state of the LSTM
     bidirectional: false
-  lstm_args:
-    input_size: 50  # Size of the input to the LSTM
-    num_layers: 3
-    bias: true
-    batch_first: true
-    dropout: 0.2
-    proj_size: 0
-  rnn_args:
-    input_size: 50  # Size of the input to the LSTM
-    num_layers: 3
-    bias: true
-    batch_first: true
-    dropout: 0.2
-  gru_args:
     input_size: 50  # Size of the input to the LSTM
     num_layers: 3
     bias: true

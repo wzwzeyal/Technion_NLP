@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
+import wandb
 
 
 class TweetNetBase(nn.Module):
     def __init__(self, model_args, vocab_size):
         super(TweetNetBase, self).__init__()
+        wandb.log({"model_args": model_args})
+        wandb.log({"vocab_size": vocab_size})
         self.model_args = model_args
         if self.model_args.seq_args.bidirectional:
             self.hidden_size = self.model_args.seq_args.hidden_size * 2
@@ -13,7 +16,7 @@ class TweetNetBase(nn.Module):
         self.output_size = model_args.output_size
         self.dropout = model_args.dropout
 
-        self.embedding = nn.Embedding(vocab_size, model_args.lstm_args.input_size)
+        self.embedding = nn.Embedding(vocab_size, model_args.seq_args.input_size)
 
         # Classifier containing dropout, linear layer and sigmoid
         self.classifier = nn.Sequential(
@@ -48,8 +51,7 @@ class TweetNetBase(nn.Module):
 class TweetLSTM(TweetNetBase):
     def __init__(self, model_args, vocab_size):
         super(TweetLSTM, self).__init__(model_args, vocab_size)
-        self.seq_model_args = dict(**model_args.lstm_args, **model_args.seq_args)
-        self.seq_model = nn.LSTM(**self.seq_model_args)
+        self.seq_model = nn.LSTM(**self.model_args.seq_args)
 
     def forward_hidden_seq_model(self, embedding):
         _, (hidden, _) = self.seq_model(embedding)
@@ -59,8 +61,7 @@ class TweetLSTM(TweetNetBase):
 class TweetRNN(TweetNetBase):
     def __init__(self, model_args, vocab_size):
         super(TweetRNN, self).__init__(model_args, vocab_size)
-        self.seq_model_args = dict(**model_args.rnn_args, **model_args.seq_args)
-        self.seq_model = nn.RNN(**self.seq_model_args)
+        self.seq_model = nn.RNN(**self.model_args.seq_args)
 
     def forward_hidden_seq_model(self, embedding):
         _, hidden = self.seq_model(embedding)
@@ -70,8 +71,7 @@ class TweetRNN(TweetNetBase):
 class TweetGRU(TweetNetBase):
     def __init__(self, model_args, vocab_size):
         super(TweetGRU, self).__init__(model_args, vocab_size)
-        self.seq_model_args = dict(**model_args.gru_args, **model_args.seq_args)
-        self.seq_model = nn.GRU(**self.seq_model_args)
+        self.seq_model = nn.GRU(**self.model_args.seq_args)
 
     def forward_hidden_seq_model(self, embedding):
         _, hidden = self.seq_model(embedding)

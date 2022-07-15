@@ -43,7 +43,7 @@ def train(training_args):
     # sns.countplot(x='sex', data=train_dataset)
 
     train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=data_args.shuffle)
-    if True: #training_args.do_eval:
+    if True:  # training_args.do_eval:
         dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
         fig = plt.figure(2)
         sns.countplot(x=LABEL, data=dev_dataset.df)
@@ -170,8 +170,17 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', default=1, type=int,
                         help='num_layers')
 
-    parser.add_argument('--model_args.lstm_args.bidirectional', default=1, type=bool,
-                        help='model_args.lstm_args.bidirectional')
+    parser.add_argument('--seq_model_name', default="LSTM", type=str,
+                        help='seq_model_name: LSTM/RNN/GRU')
+
+    parser.add_argument('--model_args.seq_args.bidirectional', default=True, type=bool,
+                        help='bidirectional')
+
+    parser.add_argument('--model_args.dropout', default=True, type=bool,
+                        help='model_args.dropout')
+
+    parser.add_argument('--model_args.seq_args.dropout', default=True, type=bool,
+                        help='model_args.seq_args.dropout')
 
     args = parser.parse_args()
 
@@ -183,4 +192,3 @@ if __name__ == '__main__':
 # https://jovian.ai/aakanksha-ns/lstm-multiclass-text-classification
 # https://towardsdatascience.com/multiclass-text-classification-using-lstm-in-pytorch-eac56baed8df
 # https://www.kaggle.com/code/mlwhiz/multiclass-text-classification-pytorch
-

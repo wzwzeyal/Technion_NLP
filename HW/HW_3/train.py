@@ -4,6 +4,8 @@ import yaml
 from box import Box
 from tqdm import tqdm
 from pprint import pprint
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 import torch
 import torch.nn as nn
@@ -12,9 +14,11 @@ from torch.utils.data import DataLoader
 import wandb
 
 from dataloading import TweetDataset
-from modeling import TweetNet
+from modeling import TweetNetBase, TweetLSTM, TweetRNN, TweetGRU
 from utils import *
 from consts import *
+
+import seaborn as sns
 
 
 def train(training_args):
@@ -32,9 +36,19 @@ def train(training_args):
 
     print("Loading datasets")
     train_dataset = TweetDataset(data_args, DATA_DIR / (TRAIN + CSV))
+    fig = plt.figure(1)
+    sns.countplot(x=LABEL, data=train_dataset.df)
+    wandb.log({"train_dataset balance ": fig})
+
+    # sns.countplot(x='sex', data=train_dataset)
+
     train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=data_args.shuffle)
-    if training_args.do_eval:
+    if True: #training_args.do_eval:
         dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
+        fig = plt.figure(2)
+        sns.countplot(x=LABEL, data=dev_dataset.df)
+        wandb.log({"dev_dataset balance ": fig})
+
         dev_dataloader = DataLoader(dev_dataset, data_args.eval_batch_size)
     if training_args.do_test:
         test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
@@ -42,7 +56,12 @@ def train(training_args):
 
     print("Initializing model")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = TweetNet(model_args, train_dataset.vocab_size).to(device)
+    model_dict = {
+        "LSTM": TweetLSTM(model_args, train_dataset.vocab_size),
+        "RNN": TweetRNN(model_args, train_dataset.vocab_size),
+        "GRU": TweetGRU(model_args, train_dataset.vocab_size),
+    }
+    model = model_dict[training_args.seq_model_name].to(device)
     wandb.watch(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()
@@ -95,6 +114,9 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
     num_batches = len(dataloader)
     average_loss, correct = 0, 0
 
+    y_test = []
+    y_pred = []
+
     with torch.no_grad():
         for iter_num, (input_ids, labels) in enumerate(tqdm(dataloader, desc=f"Eval loop on {split}")):
             input_ids, labels = input_ids.to(device), labels.to(device)
@@ -103,7 +125,10 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
 
             # Compute metrics
             average_loss += loss_fn(logits, labels).item()
-            correct += (logits.argmax(dim=1) == labels).float().sum().item()
+            pred = logits.argmax(dim=1)
+            correct += (pred == labels).float().sum().item()
+            y_test.append(labels.item())
+            y_pred.append(pred.item())
 
     # Aggregate metrics
     average_loss /= num_batches
@@ -112,14 +137,21 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})
     wandb.log({f"{split}_accuracy": accuracy, EPOCH: epoch})
+    plt.rcParams.update({'font.size': 16})
+    cm = confusion_matrix(y_test, y_pred, labels=range(5))
+
+    fig, ax = plt.subplots(figsize=(11.7, 8.27))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=range(5))
+    disp.plot()
+    plt.savefig("test.png")
+    # wandb.sklearn.plot_confusion_matrix(y_test, y_pred, range(5),)
+    # wandb.log({"ConfusionMatrixDisplay": fig})
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train an LSTM model on the IMDB dataset.')
     parser.add_argument('--config', default='config.yaml', type=str,
                         help='Path to YAML config file. Defualt: config.yaml')
-
-
 
     # with open('config.yaml', 'r') as stream:
     #     config_vars = yaml.safe_load(stream)
@@ -138,6 +170,9 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', default=1, type=int,
                         help='num_layers')
 
+    parser.add_argument('--model_args.lstm_args.bidirectional', default=1, type=bool,
+                        help='model_args.lstm_args.bidirectional')
+
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -145,4 +180,7 @@ if __name__ == '__main__':
 
     train(training_args)
 
+# https://jovian.ai/aakanksha-ns/lstm-multiclass-text-classification
+# https://towardsdatascience.com/multiclass-text-classification-using-lstm-in-pytorch-eac56baed8df
+# https://www.kaggle.com/code/mlwhiz/multiclass-text-classification-pytorch
 

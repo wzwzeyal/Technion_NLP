@@ -14,4 +14,10 @@ parameters:
     values: [32, 64, 128, 256, 512]
   num_layers:
     values: [1, 2, 3, 4, 5]
-# wandb agent wzeyal/IMDB_Tutorial/loa82895
+  model_args.bidirectional:
+    values: [true, false]
+  seq_model_name:
+    values: ["LSTM", "RNN", "GRU"]
+
+
+# Version 3.0

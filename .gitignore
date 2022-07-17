@@ -131,3 +131,6 @@ dmypy.json
 # wandb
 /wandb/
 /HW/HW_3/wandb/
+
+#pycharm
+.idea/

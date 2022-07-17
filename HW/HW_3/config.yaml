@@ -1,6 +1,6 @@
 name: Tweet4.0 # Experiment name to save in the logger
 seed: 42  # Random seed for reproducibility
-num_epochs: 20   # Number of epochs to train the model
+num_epochs: 30   # Number of epochs to train the model
 learning_rate: 0.0001
 accumulation_steps: 1
 do_train: true

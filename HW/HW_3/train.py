@@ -114,9 +114,6 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
     num_batches = len(dataloader)
     average_loss, correct = 0, 0
 
-    y_test = []
-    y_pred = []
-
     with torch.no_grad():
         for iter_num, (input_ids, labels) in enumerate(tqdm(dataloader, desc=f"Eval loop on {split}")):
             input_ids, labels = input_ids.to(device), labels.to(device)
@@ -127,8 +124,6 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
             average_loss += loss_fn(logits, labels).item()
             pred = logits.argmax(dim=1)
             correct += (pred == labels).float().sum().item()
-            y_test.append(labels.item())
-            y_pred.append(pred.item())
 
     # Aggregate metrics
     average_loss /= num_batches
@@ -137,15 +132,6 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})
     wandb.log({f"{split}_accuracy": accuracy, EPOCH: epoch})
-    plt.rcParams.update({'font.size': 16})
-    cm = confusion_matrix(y_test, y_pred, labels=range(5))
-
-    fig, ax = plt.subplots(figsize=(11.7, 8.27))
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=range(5))
-    disp.plot()
-    plt.savefig("test.png")
-    # wandb.sklearn.plot_confusion_matrix(y_test, y_pred, range(5),)
-    # wandb.log({"ConfusionMatrixDisplay": fig})
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ TXT = '.txt'
 YAML = '.yaml'
 
 UNK_TOKEN = "<UNK>"
+PAD_TOKEN = "<UNK>"
 
 TEXT = "text"
 INPUT_IDS = "input_ids"

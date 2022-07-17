@@ -11,7 +11,7 @@ seq_model_name: GRU
 
 data_args:
   max_seq_length: 64
-  batch_size: 1024
+  batch_size: 2048
   shuffle: True
   eval_batch_size: 16  # Batch size for evaluation
   minimum_vocab_freq_threshold: 1

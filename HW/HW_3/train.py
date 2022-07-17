@@ -161,6 +161,9 @@ if __name__ == '__main__':
     parser.add_argument('--seq_model_name', default="LSTM", type=str,
                         help='seq_model_name: LSTM/RNN/GRU')
 
+    parser.add_argument('--batch_size', default="512", type=int,
+                        help='batch_size')
+
     parser.add_argument('--model_args.seq_args.bidirectional', default=True, type=bool,
                         help='bidirectional')
 

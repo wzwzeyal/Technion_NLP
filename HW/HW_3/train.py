@@ -1,24 +1,20 @@
 import argparse
-import os
+from pprint import pprint
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import torch.nn as nn
 import yaml
 from box import Box
-from tqdm import tqdm
-from pprint import pprint
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 import wandb
-
-from dataloading import TweetDataset
-from modeling import TweetNetBase, TweetLSTM, TweetRNN, TweetGRU
-from utils import *
 from consts import *
-
-import seaborn as sns
+from dataloading import TweetDataset
+from modeling import TweetLSTM, TweetRNN, TweetGRU
+from utils import *
+from wandb_utils import CheckpointSaver
 
 
 def train(training_args):
@@ -66,6 +62,8 @@ def train(training_args):
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()
 
+    checkpoint_saver = CheckpointSaver(dirpath='./model_weights', decreasing=False, top_n=1)
+
     for epoch in range(training_args.num_epochs):
         print(f"\n\n-------- Epoch: {epoch} --------\n")
         if training_args.do_train:
@@ -73,7 +71,7 @@ def train(training_args):
         if training_args.do_eval_on_train:
             eval_loop(train_dataloader, model, loss_fn, device, TRAIN, epoch)
         if training_args.do_eval:
-            eval_loop(dev_dataloader, model, loss_fn, device, DEV, epoch)
+            eval_loop(dev_dataloader, model, loss_fn, device, DEV, epoch, checkpoint_saver)
 
     if training_args.do_test:
         eval_loop(test_dataloader, model, loss_fn, device, TEST, epoch)
@@ -84,11 +82,11 @@ def train(training_args):
 def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
     model.train()
 
-    for iter_num, (input_ids, labels) in enumerate(tqdm(dataloader, desc="Train Loop")):
+    for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc="Train Loop")):
         input_ids, labels = input_ids.to(device), labels.to(device)
 
         # Compute prediction and loss
-        logits = model(input_ids)
+        logits = model(input_ids, lengths)
         loss = loss_fn(logits, labels)
 
         # Backpropagation
@@ -106,7 +104,7 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
         wandb.log({"train_loop_loss": loss, EPOCH: epoch, ITERATION: iter_num})
 
 
-def eval_loop(dataloader, model, loss_fn, device, split, epoch):
+def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver=None):
     # Change model to eval mode
     model.eval()
 
@@ -115,19 +113,23 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch):
     average_loss, correct = 0, 0
 
     with torch.no_grad():
-        for iter_num, (input_ids, labels) in enumerate(tqdm(dataloader, desc=f"Eval loop on {split}")):
+        for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc=f"Eval loop on {split}")):
             input_ids, labels = input_ids.to(device), labels.to(device)
 
-            logits = model(input_ids)
+            logits = model(input_ids, lengths)
 
             # Compute metrics
             average_loss += loss_fn(logits, labels).item()
-            pred = logits.argmax(dim=1)
-            correct += (pred == labels).float().sum().item()
+            preds = torch.argmax(logits, dim=1)
+            # pred = logits.argmax(dim=1)
+            correct += (preds == labels).float().sum().item()
 
     # Aggregate metrics
     average_loss /= num_batches
     accuracy = correct / size
+
+    if checkpoint_saver is not None:
+        checkpoint_saver(model, epoch, accuracy)
 
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})
@@ -162,11 +164,14 @@ if __name__ == '__main__':
     parser.add_argument('--model_args.seq_args.bidirectional', default=True, type=bool,
                         help='bidirectional')
 
-    parser.add_argument('--model_args.dropout', default=True, type=bool,
+    parser.add_argument('--model_args.dropout', default=0.2, type=float,
                         help='model_args.dropout')
 
-    parser.add_argument('--model_args.seq_args.dropout', default=True, type=bool,
+    parser.add_argument('--model_args.seq_args.dropout', default=0.2, type=float,
                         help='model_args.seq_args.dropout')
+
+    parser.add_argument('--model_args.data_args.minimum_vocab_freq_threshold', default=1, type=int,
+                        help='model_args.seq_args.minimum_vocab_freq_threshold')
 
     args = parser.parse_args()
 

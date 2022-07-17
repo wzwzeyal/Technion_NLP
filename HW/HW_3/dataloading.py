@@ -55,6 +55,11 @@ class TweetDataset(Dataset):
 
         # Tokenize data using the tokenize function
         self.df[INPUT_IDS] = self.df.apply(lambda row: self.tokenize(row[TEXT]), axis=1)
+
+        pad_id = self.token2id[self.pad_token]
+        self.df[TEXT_LEN] = self.df.apply(
+            lambda row: len(row[INPUT_IDS]) - row[INPUT_IDS].count(pad_id), axis=1)
+        pass
         # print(self.df.iloc[0])
 
     def __len__(self):
@@ -66,9 +71,14 @@ class TweetDataset(Dataset):
         # return the input_ids and the label as tensors, make sure to convert the label type to a long
 
         input_ids = self.df.iloc[idx][INPUT_IDS]
+        length = self.df.iloc[idx][TEXT_LEN]
         label = self.df.iloc[idx][LABEL]
 
-        return torch.tensor(input_ids), torch.tensor(label, dtype=torch.long)
+        return (
+            torch.LongTensor(input_ids),
+            length,
+            label
+        )
 
     def tokenize(self, text):
         input_ids = []
@@ -88,4 +98,5 @@ class TweetDataset(Dataset):
         for i in range(self.data_args.max_seq_length - len(input_ids)):
             input_ids.append(self.token2id[self.pad_token])
 
+        # return torch.LongTensor(input_ids)
         return input_ids

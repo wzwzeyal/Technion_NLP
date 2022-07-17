@@ -14,11 +14,12 @@ TXT = '.txt'
 YAML = '.yaml'
 
 UNK_TOKEN = "<UNK>"
-PAD_TOKEN = "<UNK>"
+PAD_TOKEN = "<PAD>"
 
 TEXT = "text"
 INPUT_IDS = "input_ids"
 LABEL = "label"
+TEXT_LEN = "text_length"
 
 EPOCH = "epoch"
 ITERATION = "iteration"

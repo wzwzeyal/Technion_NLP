@@ -7,7 +7,7 @@ do_train: true
 do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
-seq_model_name: GRU
+
 
 data_args:
   max_seq_length: 64
@@ -17,13 +17,14 @@ data_args:
   minimum_vocab_freq_threshold: 1
 
 model_args:
+  seq_model_name: LSTM
   output_size: 5  # Should correspond to the number of classes
   dropout: 0.2  # Dropout of the final classifier in the model
   seq_args:
     hidden_size: 256  # Size of the hidden state of the LSTM
-    bidirectional: false
+    bidirectional: True
     input_size: 50  # Size of the input to the LSTM
-    num_layers: 3
+    num_layers: 2
     bias: true
     batch_first: true
     dropout: 0.2

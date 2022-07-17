@@ -12,7 +12,7 @@ from tqdm import tqdm
 import wandb
 from consts import *
 from dataloading import TweetDataset
-from modeling import TweetLSTM, TweetRNN, TweetGRU
+from modeling import TweetNet
 from utils import *
 from wandb_utils import CheckpointSaver
 
@@ -52,12 +52,8 @@ def train(training_args):
 
     print("Initializing model")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model_dict = {
-        "LSTM": TweetLSTM(model_args, train_dataset.vocab_size),
-        "RNN": TweetRNN(model_args, train_dataset.vocab_size),
-        "GRU": TweetGRU(model_args, train_dataset.vocab_size),
-    }
-    model = model_dict[training_args.seq_model_name].to(device)
+
+    model = TweetNet(model_args, train_dataset.vocab_size).to(device)
     wandb.watch(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()

@@ -2,8 +2,14 @@ import gensim
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+from sklearn.preprocessing import LabelEncoder
+from sklearn.utils import compute_class_weight
 
 from consts import *
+from imblearn.over_sampling import SMOTE
+import numpy as np
+
+
 
 
 class TweetDataset(Dataset):
@@ -13,6 +19,11 @@ class TweetDataset(Dataset):
 
         # Load data to dataframe
         self.df = pd.read_csv(self.file_path)
+
+        label_encoder = LabelEncoder().fit(self.df[LABEL])
+        classes = label_encoder.classes_
+        self.class_weight = compute_class_weight(class_weight="balanced", classes = classes, y=self.df[LABEL])
+
         self.unk_token = UNK_TOKEN
         self.pad_token = PAD_TOKEN
 

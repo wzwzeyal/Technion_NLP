@@ -12,9 +12,10 @@ from tqdm import tqdm
 import wandb
 from consts import *
 from dataloading import TweetDataset
-from modeling import TweetLSTM, TweetRNN, TweetGRU
+from modeling import TweetNet
 from utils import *
 from wandb_utils import CheckpointSaver
+
 
 
 def train(training_args):
@@ -37,8 +38,12 @@ def train(training_args):
     wandb.log({"train_dataset balance ": fig})
 
     # sns.countplot(x='sex', data=train_dataset)
+    from sklearn.preprocessing import LabelEncoder
 
-    train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=data_args.shuffle)
+
+
+
+    train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=True)
     if True:  # training_args.do_eval:
         dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
         fig = plt.figure(2)
@@ -50,14 +55,11 @@ def train(training_args):
         test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
         test_dataloader = DataLoader(test_dataset, data_args.eval_batch_size)
 
+
+
     print("Initializing model")
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model_dict = {
-        "LSTM": TweetLSTM(model_args, train_dataset.vocab_size),
-        "RNN": TweetRNN(model_args, train_dataset.vocab_size),
-        "GRU": TweetGRU(model_args, train_dataset.vocab_size),
-    }
-    model = model_dict[training_args.seq_model_name].to(device)
+    model = TweetNet(model_args, train_dataset.vocab).to(device)
     wandb.watch(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()
@@ -175,6 +177,19 @@ if __name__ == '__main__':
 
     parser.add_argument('--model_args.data_args.minimum_vocab_freq_threshold', default=1, type=int,
                         help='model_args.seq_args.minimum_vocab_freq_threshold')
+
+    parser.add_argument('--model_args.cat_max_and_mean', default=False, type=bool,
+                        help='cat_max_and_mean')
+
+    parser.add_argument('--model_args.weight_requires_grad', default=False, type=bool,
+                        help='weight_requires_grad')
+
+    # --model_args.embedding_model=glove-wiki-gigaword --model_args.seq_args.input_size=100
+    parser.add_argument('--model_args.embedding_model', default="glove-wiki-gigaword", type=str,
+                        help='https://github.com/RaRe-Technologies/gensim-data')
+
+    parser.add_argument('--model_args.seq_args.input_size', default=100, type=int,
+                        help='input_size')
 
     args = parser.parse_args()
 

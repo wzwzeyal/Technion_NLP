@@ -26,7 +26,7 @@ class CheckpointSaver:
                 f"Current metric value better than {metric_val} better than best {self.best_metric_val}, saving model at {model_path}, & logging model weights to W&B.")
             self.best_metric_val = metric_val
             torch.save(model.state_dict(), model_path)
-            self.log_artifact(f'model-ckpt-epoch-{epoch}.pt', model_path, metric_val)
+            self.log_artifact(f'model-ckpt-epoch-{metric_val*100:.2f}-{epoch}.pt', model_path, metric_val)
             self.top_model_paths.append({'path': model_path, 'score': metric_val})
             self.top_model_paths = sorted(self.top_model_paths, key=lambda o: o['score'], reverse=not self.decreasing)
         if len(self.top_model_paths) > self.top_n:

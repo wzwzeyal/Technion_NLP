@@ -17,7 +17,7 @@ class TweetDataset(Dataset):
         self.file_path = file_path
 
         # Load data to dataframe
-        self.df = pd.read_csv(self.file_path).head(1000)
+        self.df = pd.read_csv(self.file_path)
 
         label_encoder = LabelEncoder().fit(self.df[LABEL])
         classes = label_encoder.classes_

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-PROJECT_NAME = "IMDB_BASIC_SWEEP_40"
+PROJECT_NAME = "IMDB_BASIC_FINAL_SWEEP"
 
 PROJECT_DIR = Path.cwd()
 DATA_DIR = PROJECT_DIR / "data"

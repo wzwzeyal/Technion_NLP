@@ -6,7 +6,6 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import compute_class_weight
 
 from consts import *
-from imblearn.over_sampling import SMOTE
 import numpy as np
 
 

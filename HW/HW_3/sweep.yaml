@@ -21,8 +21,8 @@ parameters:
     values: [32, 64, 128, 256, 512]
   num_layers:
     values: [1, 2, 3, 4, 5]
-#  batch_size:
-#    values: [1, 4, 16]
+  batch_size:
+    values: [1, 4, 16]
   model_args.seq_args.bidirectional:
     values: [true, false]
   model_args.data_args.minimum_vocab_freq_threshold:

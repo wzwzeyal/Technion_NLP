@@ -16,7 +16,7 @@ class TweetNet(nn.Module):
         self.dropout = model_args.dropout
 
         if model_args.seq_model_name == "RNN":
-            self.seq_model = nn.LSTM(**self.model_args.seq_args)
+            self.seq_model = nn.RNN(**self.model_args.seq_args)
         elif model_args.seq_model_name == "GRU":
             self.seq_model = nn.GRU(**self.model_args.seq_args)
         elif model_args.seq_model_name == "LSTM":

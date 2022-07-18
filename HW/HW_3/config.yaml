@@ -1,4 +1,4 @@
-name: Tweet4.2 # Experiment name to save in the logger
+name: Tweet4.2_azure_40 # Experiment name to save in the logger
 seed: 42  # Random seed for reproducibility
 num_epochs: 40   # Number of epochs to train the model
 learning_rate: 0.0001

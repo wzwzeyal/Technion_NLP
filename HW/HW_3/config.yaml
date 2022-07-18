@@ -25,7 +25,7 @@ model_args:
   seq_args:
     hidden_size: 256  # Size of the hidden state of the LSTM
     bidirectional: True
-    input_size: 300  # Size of the input to the LSTM
+    input_size: 50  # Size of the input to the LSTM
     num_layers: 3
     bias: true
     batch_first: true

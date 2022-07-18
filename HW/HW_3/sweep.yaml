@@ -5,26 +5,27 @@ metric:
   name: dev_accuracy
   goal: maximize
 parameters:
-  seq_model_name:
-    values: [ "LSTM", "RNN", "GRU" ]
-  model_args.dropout:
-    min: 0.2
-    max: 0.5
-  model_args.seq_args.dropout:
-    min: 0.2
-    max: 0.5
+#  seq_model_name:
+#    values: [ "LSTM", "RNN", "GRU" ]
+#  model_args.dropout:
+#    min: 0.2
+#    max: 0.5
+#  model_args.seq_args.dropout:
+#    min: 0.2
+#    max: 0.5
   learning_rate:
     values: [0.1, 0.01, 0.001, 0.0001, 0.00001]
   accumulation_steps:
-    values: [1, 2, 4, 8, 16]
+    values: [1, 2, 4]
+#    values: [1, 2, 4, 8, 16]
   hidden_size:
-    values: [32, 64, 128, 256, 512]
+    values: [128, 256, 512]
   num_layers:
     values: [1, 2, 3, 4, 5]
   batch_size:
     values: [1, 4, 16]
-  model_args.seq_args.bidirectional:
-    values: [true, false]
+#  model_args.seq_args.bidirectional:
+#    values: [true, false]
   model_args.data_args.minimum_vocab_freq_threshold:
     values: [0, 1]
   model_args.cat_max_and_mean:

@@ -22,6 +22,8 @@ def train(training_args):
     # Setting up logging
     wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="wzeyal")
 
+
+
     pprint(training_args)
 
     # Check args and unpack them
@@ -64,7 +66,7 @@ def train(training_args):
     optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
     loss_fn = nn.CrossEntropyLoss()
 
-    checkpoint_saver = CheckpointSaver(dirpath='./model_weights', decreasing=False, top_n=1)
+    checkpoint_saver = CheckpointSaver(dirpath=f'./{MODEL_WEIGHTS}', decreasing=False, top_n=1)
 
     for epoch in range(training_args.num_epochs):
         print(f"\n\n-------- Epoch: {epoch} --------\n")
@@ -139,6 +141,7 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
 
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser(description='Train an LSTM model on the IMDB dataset.')
     parser.add_argument('--config', default='config.yaml', type=str,
                         help='Path to YAML config file. Defualt: config.yaml')

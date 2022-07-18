@@ -23,3 +23,5 @@ TEXT_LEN = "text_length"
 
 EPOCH = "epoch"
 ITERATION = "iteration"
+
+MODEL_WEIGHTS = ".model_weights"

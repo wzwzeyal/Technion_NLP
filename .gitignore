@@ -129,8 +129,12 @@ dmypy.json
 .pyre/
 
 # wandb
+wandb/
 /wandb/
 /HW/HW_3/wandb/
+.model_weights/
 
 #pycharm
 .idea/
+
+

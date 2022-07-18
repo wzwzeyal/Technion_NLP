@@ -19,7 +19,7 @@ class CheckpointSaver:
         self.best_metric_val = np.Inf if decreasing else -np.Inf
 
     def __call__(self, model, epoch, metric_val):
-        model_path = os.path.join(self.dirpath, model.__class__.__name__ + f'_epoch{epoch}.pt')
+        model_path = os.path.join(self.dirpath, model.__class__.__name__ + f'_{metric_val*100:.2f}' + f'_epoch{epoch}.pt')
         save = metric_val < self.best_metric_val if self.decreasing else metric_val > self.best_metric_val
         if save:
             logging.info(

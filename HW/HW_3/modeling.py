@@ -15,25 +15,25 @@ class TweetNet(nn.Module):
         self.output_size = model_args.output_size
         self.dropout = model_args.dropout
 
-        if model_args.seq_model_name == "RNN":
+        if model_args.backbone_model == "RNN":
             self.seq_model = nn.RNN(**self.model_args.seq_args)
-        elif model_args.seq_model_name == "GRU":
+        elif model_args.backbone_model == "GRU":
             self.seq_model = nn.GRU(**self.model_args.seq_args)
-        elif model_args.seq_model_name == "LSTM":
+        elif model_args.backbone_model == "LSTM":
             self.seq_model = nn.LSTM(**self.model_args.seq_args)
         else:
-            assert KeyError(), f"illegal seq model: {self.seq_model_name}"
+            assert KeyError(), f"illegal seq model: {self.model_args.seq_args}"
 
-        glove_model = f"{model_args.embedding_model}-{model_args.seq_args.input_size}"
+        glove_model = f"{model_args.embedding}-{model_args.seq_args.input_size}"
         print(f"downloading {glove_model}")
-        embedding_model = downloader.load(glove_model)
-        embedding_matrix = self.create_embedding_matrix(vocab, embedding_model, model_args.seq_args.input_size)
 
         self.embedding = nn.Embedding(len(vocab), model_args.seq_args.input_size, padding_idx=len(vocab)-1)
-        if model_args.embedding_model != "none":
+        if model_args.embedding != "none":
+            embedding_model = downloader.load(glove_model)
+            embedding_matrix = self.create_embedding_matrix(vocab, embedding_model, model_args.seq_args.input_size)
             self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
             # we do not want to train the pretrained embeddings
-            self.embedding.weight.requires_grad = model_args.weight_requires_grad
+            self.embedding.weight.requires_grad = model_args.embedding_weight_requires_grad
         self.cat_max_and_mean = model_args.cat_max_and_mean
 
         hidden_factor = 2 if self.cat_max_and_mean else 1

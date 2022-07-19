@@ -178,7 +178,7 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
         if accuracy > ACC_THRESHOLD:
             wandb.alert(
                 title="High Accuracy",
-                text=f"Run {training_args.name} achieved {accuracy*100:.2f}% !"
+                text=f"Run {training_args.name} achieved {accuracy * 100:.2f}% !"
             )
 
     # Log metrics, report everything twice for cross-model comparison too
@@ -202,58 +202,57 @@ if __name__ == '__main__':
     parser.add_argument('--accumulation_steps', default=1, type=int,
                         help='accumulation_steps')
 
-    parser.add_argument('--data_args.batch_size', default=64, type=int,
-                        help='batch_size')
-
-    parser.add_argument('--data_args.minimum_vocab_freq_threshold', default=1, type=int,
-                        help='minimum_vocab_freq_threshold')
-
-    parser.add_argument('--model_args.dropout', default=0.2, type=float,
-                        help='dropout')
-
-    parser.add_argument('--model_args.weight_requires_grad', default=False, type=bool,
-                        help='weight_requires_grad')
-
-    parser.add_argument('--model_args.cat_max_and_mean', default=False, type=bool,
-                        help='cat_max_and_mean')
-
-    parser.add_argument('--model_args.embedding_model', default="glove-wiki-gigaword", type=str,
-                        help='embedding_model')
-
-    parser.add_argument('--model_args.seq_args.hidden_size', default=256, type=int,
+    parser.add_argument('--hidden_size', default=50, type=int,
                         help='hidden_size')
 
-    parser.add_argument('--model_args.seq_args.bidirectional', default=True, type=bool,
+    parser.add_argument('--num_layers', default=2, type=int,
+                        help='num_layers')
+
+    parser.add_argument('--dropout', default=False, type=bool,
+                        help='dropout')
+
+    parser.add_argument('--backbone_model', default="LSTM", type=str,
+                        help='backbone_model')
+
+    parser.add_argument('--bidirectional', default=False, type=bool,
                         help='bidirectional')
 
-    parser.add_argument('--model_args.seq_args.input_size', default=50, type=int,
+    parser.add_argument('--input_size', default=50, type=int,
                         help='input_size')
 
-    parser.add_argument('--model_args.seq_args.num_layers:', default=2, type=int,
-                        help='num_layers')
+    parser.add_argument('--minimum_vocab_freq_threshold', default=1, type=int,
+                        help='minimum_vocab_freq_threshold')
+
+    parser.add_argument('--embedding', default="glove-wiki-gigaword", type=str,
+                        help='https://github.com/RaRe-Technologies/gensim-data')
+
+    parser.add_argument('--embedding_weight_requires_grad', default=False, type=bool,
+                        help='embedding_weight_requires_grad')
+
+    parser.add_argument('--batch_size', default=16, type=int,
+                        help='batch_size')
+
+    parser.add_argument('--cat_max_and_mean', default=False, type=bool,
+                        help='cat_max_and_mean')
 
     args = parser.parse_args()
 
-    args_box = Box(vars(args))
-
     with open(args.config) as config_file:
         training_args = Box(yaml.load(config_file, Loader=yaml.FullLoader))
-        # training_args = yaml.safe_load(config_file)
 
-    training_args.learning_rate = args_box.learning_rate
-    training_args.accumulation_steps = args_box.accumulation_steps
+    training_args.learning_rate = args.learning_rate
+    training_args.accumulation_steps = args.accumulation_steps
 
-    training_args.data_args.batch_size = args_box.data_args_batch_size
-    training_args.data_args.minimum_vocab_freq_threshold = args_box.data_args_minimum_vocab_freq_threshold
+    training_args.data_args.batch_size = args.batch_size
+    training_args.data_args.minimum_vocab_freq_threshold = args.minimum_vocab_freq_threshold
 
-    training_args.model_args.dropout = args_box.model_args_dropout
-    training_args.model_args.weight_requires_grad = args_box.model_args_weight_requires_grad
-    training_args.model_args.cat_max_and_mean = args_box.model_args_cat_max_and_mean
-    training_args.model_args.embedding_model = args_box.model_args_embedding_model
-    training_args.model_args.seq_args.hidden_size = args_box.model_args_seq_args_hidden_size
-    training_args.model_args.seq_args.bidirectional = args_box.model_args_seq_args_bidirectional
-    training_args.model_args.seq_args.input_size = args_box.model_args_seq_args_input_size
-    training_args.model_args.seq_args.num_layers = args_box.model_args_seq_args_num_layers
+    training_args.model_args.dropout = args.dropout
+    training_args.model_args.embedding_weight_requires_grad = args.embedding_weight_requires_grad
+    training_args.model_args.cat_max_and_mean = args.cat_max_and_mean
+    training_args.model_args.embedding = args.embedding
+    training_args.model_args.seq_args.hidden_size = args.hidden_size
+    training_args.model_args.seq_args.bidirectional = args.bidirectional
+    training_args.model_args.seq_args.input_size = args.input_size
 
     training_args.name = f"{training_args.name}_{str(uuid.uuid4())[:8]}"
 

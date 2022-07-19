@@ -42,5 +42,6 @@ class CheckpointSaver:
         logging.info(f"Removing extra models.. {to_remove}")
         for o in to_remove:
             if os.path.exists(o['path']):
+                pass
                 os.remove(o['path'])
         self.top_model_paths = self.top_model_paths[:self.top_n]

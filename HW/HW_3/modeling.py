@@ -30,9 +30,10 @@ class TweetNet(nn.Module):
         embedding_matrix = self.create_embedding_matrix(vocab, embedding_model, model_args.seq_args.input_size)
 
         self.embedding = nn.Embedding(len(vocab), model_args.seq_args.input_size, padding_idx=len(vocab)-1)
-        self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
-        # we do not want to train the pretrained embeddings
-        self.embedding.weight.requires_grad = model_args.weight_requires_grad
+        if model_args.embedding_model != "none":
+            self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
+            # we do not want to train the pretrained embeddings
+            self.embedding.weight.requires_grad = model_args.weight_requires_grad
         self.cat_max_and_mean = model_args.cat_max_and_mean
 
         hidden_factor = 2 if self.cat_max_and_mean else 1

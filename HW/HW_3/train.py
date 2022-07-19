@@ -7,6 +7,7 @@ import seaborn as sns
 import torch.nn as nn
 import yaml
 from box import Box
+from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -86,7 +87,15 @@ def train(training_args):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = TweetNet(model_args, train_dataset.vocab).to(device)
     wandb.watch(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=training_args.learning_rate)
+
+    n_iter = training_args.num_epochs * len(train_dataloader)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=training_args.learning_rate,
+        betas=(0.9, 0.99),
+        weight_decay=1e-2
+    )
+    scheduler = OneCycleLR(optimizer, max_lr=training_args.learning_rate, total_steps=n_iter)
     loss_fn = nn.CrossEntropyLoss()
 
     checkpoint_saver = CheckpointSaver(dirpath=f'./{MODEL_WEIGHTS}', decreasing=False, top_n=1)
@@ -94,7 +103,7 @@ def train(training_args):
     for epoch in range(training_args.num_epochs):
         print(f"\n\n-------- Epoch: {epoch} --------\n")
         if training_args.do_train:
-            train_loop(train_dataloader, model, loss_fn, optimizer, device, epoch)
+            train_loop(train_dataloader, model, loss_fn, optimizer, scheduler, device, epoch)
         if training_args.do_eval_on_train:
             eval_loop(train_dataloader, model, loss_fn, device, TRAIN, epoch)
         if training_args.do_eval:
@@ -112,7 +121,7 @@ def train(training_args):
     return
 
 
-def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
+def train_loop(dataloader, model, loss_fn, optimizer, scheduler, device, epoch):
     model.train()
 
     for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc="Train Loop")):
@@ -132,6 +141,9 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
         if ((iter_num + 1) % training_args.accumulation_steps == 0) or (iter_num + 1 == len(dataloader)):
             optimizer.step()
             optimizer.zero_grad()
+            last_lr = scheduler.get_last_lr()[0]
+            wandb.log({"lr": last_lr, EPOCH: epoch, ITERATION: iter_num})
+            scheduler.step()
 
         # Log loss
         wandb.log({"train_loop_loss": loss, EPOCH: epoch, ITERATION: iter_num})

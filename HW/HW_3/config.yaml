@@ -1,4 +1,4 @@
-name: exp # Experiment name to save in the logger
+name: run # Experiment prefix name to save in the logger
 seed: 42  # Random seed for reproducibility
 num_epochs: 30   # Number of epochs to train the model
 do_train: true
@@ -28,7 +28,7 @@ model_args:
 #    hidden_size: 256  # Size of the hidden state of the LSTM
 #    bidirectional: True
 #    input_size: 50  # Size of the input to the LSTM
-#    num_layers: 3
+    num_layers: 2
     bias: true
     batch_first: true
     dropout: 0.2

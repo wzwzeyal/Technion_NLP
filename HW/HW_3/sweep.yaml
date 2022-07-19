@@ -1,5 +1,5 @@
 program: train.py
-project: IMDB_Tutorial_HW3_Final
+project: IMDB_Multiclass_sweep
 method: bayes
 metric:
   name: dev_accuracy

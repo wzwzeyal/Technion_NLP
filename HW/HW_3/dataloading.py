@@ -19,9 +19,8 @@ class TweetDataset(Dataset):
         # Load data to dataframe
         self.df = pd.read_csv(self.file_path)
 
-        label_encoder = LabelEncoder().fit(self.df[LABEL])
-        classes = label_encoder.classes_
-        self.class_weight = compute_class_weight(class_weight="balanced", classes = classes, y=self.df[LABEL])
+        if LABEL not in self.df.columns:
+            self.df[LABEL] = -1
 
         self.unk_token = UNK_TOKEN
         self.pad_token = PAD_TOKEN
@@ -33,8 +32,6 @@ class TweetDataset(Dataset):
             # Tokenize all of the text using gensim.utils.tokenize(text, lowercase=True)
             # https://stackoverflow.com/questions/51776314/how-to-concatenate-all-rows-of-a-column-of-a-data-frame-in-pandas-without-group
             tokenized_text = gensim.utils.tokenize(" ".join(self.df[TEXT].tolist()), lowercase=True)
-
-
 
             # # Create a set of all the unique tokens in the text
             # self.vocab = set(tokenized_text)

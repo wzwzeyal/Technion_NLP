@@ -1,4 +1,5 @@
 import argparse
+import uuid
 from pprint import pprint
 
 import matplotlib.pyplot as plt
@@ -17,11 +18,42 @@ from utils import *
 from wandb_utils import CheckpointSaver
 
 
+def do_infer(dataloader, model, device):
+    model.eval()
+
+    infer_results = []
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    with torch.no_grad():
+        for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc=f"infer")):
+            input_ids, labels = input_ids.to(device), labels.to(device)
+
+            logits = model(input_ids, lengths)
+
+            pred = logits.argmax(dim=1)
+            pred_list = pred.cpu().detach().numpy()
+            infer_results.extend(pred_list)
+
+    test_df = dataloader.dataset.df
+
+    test_df[LABEL] = infer_results
+
+    output_file = SUBMISSION + CSV
+    test_df[[TEXT, LABEL]].to_csv(output_file, index=False)
+    artifact = wandb.Artifact(output_file, type='result')
+    artifact.add_file(f"./{output_file}")
+    wandb.run.log_artifact(artifact)
+
+
 def train(training_args):
     # Setting up logging
     wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="wzeyal")
 
     pprint(training_args)
+
+    dev_dataloader = None
+    test_dataloader = None
+    epoch = 0
 
     # Check args and unpack them
     check_args(training_args)
@@ -39,14 +71,14 @@ def train(training_args):
     # sns.countplot(x='sex', data=train_dataset)
 
     train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=True)
-    if True:  # training_args.do_eval:
+    if training_args.do_eval:
         dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
         fig = plt.figure(2)
         sns.countplot(x=LABEL, data=dev_dataset.df)
-        wandb.log({"dev_dataset balance ": fig})
+        wandb.log({"dev_dataset balance": fig})
 
         dev_dataloader = DataLoader(dev_dataset, data_args.eval_batch_size)
-    if training_args.do_test:
+    if training_args.do_infer:
         test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
         test_dataloader = DataLoader(test_dataset, data_args.eval_batch_size)
 
@@ -66,10 +98,16 @@ def train(training_args):
         if training_args.do_eval_on_train:
             eval_loop(train_dataloader, model, loss_fn, device, TRAIN, epoch)
         if training_args.do_eval:
-            eval_loop(dev_dataloader, model, loss_fn, device, DEV, epoch, checkpoint_saver)
+            if dev_dataloader is not None:
+                eval_loop(dev_dataloader, model, loss_fn, device, DEV, epoch, checkpoint_saver)
 
     if training_args.do_test:
-        eval_loop(test_dataloader, model, loss_fn, device, TEST, epoch)
+        if test_dataloader is not None:
+            eval_loop(test_dataloader, model, loss_fn, device, TEST, epoch)
+
+    if training_args.do_infer:
+        if test_dataloader is not None:
+            do_infer(test_dataloader, model, device)
 
     return
 
@@ -125,6 +163,11 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
 
     if checkpoint_saver is not None:
         checkpoint_saver(model, epoch, accuracy)
+        if accuracy > ACC_THRESHOLD:
+            wandb.alert(
+                title="High Accuracy",
+                text=f"Run {training_args.name} achieved {accuracy*100:.2f}% !"
+            )
 
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})
@@ -147,7 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('--accumulation_steps', default=1, type=int,
                         help='accumulation_steps')
 
-    parser.add_argument('--data_args.batch_size', default=16, type=int,
+    parser.add_argument('--data_args.batch_size', default=64, type=int,
                         help='batch_size')
 
     parser.add_argument('--data_args.minimum_vocab_freq_threshold', default=1, type=int,
@@ -199,6 +242,8 @@ if __name__ == '__main__':
     training_args.model_args.seq_args.bidirectional = args_box.model_args_seq_args_bidirectional
     training_args.model_args.seq_args.input_size = args_box.model_args_seq_args_input_size
     training_args.model_args.seq_args.num_layers = args_box.model_args_seq_args_num_layers
+
+    training_args.name = f"{training_args.name}_{str(uuid.uuid4())[:8]}"
 
     # merged_args = dict(training_args, **args_dict)
     train(Box(training_args))

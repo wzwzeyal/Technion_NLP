@@ -1,6 +1,6 @@
 from pathlib import Path
 
-PROJECT_NAME = "IMDB_BASIC_FINAL_SWEEP"
+PROJECT_NAME = "IMDB_Multiclass"
 
 PROJECT_DIR = Path.cwd()
 DATA_DIR = PROJECT_DIR / "data"
@@ -25,3 +25,6 @@ EPOCH = "epoch"
 ITERATION = "iteration"
 
 MODEL_WEIGHTS = ".model_weights"
+SUBMISSION = "submission"
+
+ACC_THRESHOLD = 0.4

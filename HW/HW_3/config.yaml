@@ -1,17 +1,18 @@
-name: Tweet_dep # Experiment name to save in the logger
+name: exp # Experiment name to save in the logger
 seed: 42  # Random seed for reproducibility
-num_epochs: 40   # Number of epochs to train the model
+num_epochs: 1   # Number of epochs to train the model
 do_train: true
 do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
+do_infer: true  # infer the test result and write to a submission file
 
 #learning_rate: 0.0001
 #accumulation_steps: 1
 
 data_args:
   max_seq_length: 64
-#  batch_size: 1
+  batch_size: 128
   shuffle: True
   eval_batch_size: 4  # Batch size for evaluation
 #  minimum_vocab_freq_threshold: 1
@@ -27,7 +28,7 @@ model_args:
 #    hidden_size: 256  # Size of the hidden state of the LSTM
 #    bidirectional: True
 #    input_size: 50  # Size of the input to the LSTM
-    num_layers: 3
+#    num_layers: 3
     bias: true
     batch_first: true
     dropout: 0.2

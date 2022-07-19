@@ -2,13 +2,8 @@ import gensim
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder
-from sklearn.utils import compute_class_weight
 
 from consts import *
-import numpy as np
-
-
 
 
 class TweetDataset(Dataset):
@@ -48,8 +43,6 @@ class TweetDataset(Dataset):
 
         else:
             self.vocab = vocab
-
-
 
         # Set the vocab size
         self.vocab_size = len(self.vocab)

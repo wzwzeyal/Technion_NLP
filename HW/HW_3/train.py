@@ -7,7 +7,6 @@ import seaborn as sns
 import torch.nn as nn
 import yaml
 from box import Box
-from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -48,7 +47,7 @@ def do_infer(dataloader, model, device):
 
 def train(training_args):
     # Setting up logging
-    wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="wzeyal")
+    wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="nlpcourse")
 
     pprint(training_args)
 
@@ -64,21 +63,15 @@ def train(training_args):
     set_seed(training_args.seed)
 
     print("Loading datasets")
+    print("Loading datasets")
     train_dataset = TweetDataset(data_args, DATA_DIR / (TRAIN + CSV))
-    fig = plt.figure(1)
-    sns.countplot(x=LABEL, data=train_dataset.df)
-    wandb.log({"train_dataset balance ": fig})
-
-    # sns.countplot(x='sex', data=train_dataset)
-
-    train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=data_args.shuffle)
     if training_args.do_eval:
         dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
-        fig = plt.figure(2)
-        sns.countplot(x=LABEL, data=dev_dataset.df)
-        wandb.log({"dev_dataset balance": fig})
-
         dev_dataloader = DataLoader(dev_dataset, data_args.eval_batch_size)
+    if training_args.do_test:
+        test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
+        test_dataloader = DataLoader(test_dataset, data_args.eval_batch_size)
     if training_args.do_infer:
         test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
         test_dataloader = DataLoader(test_dataset, data_args.eval_batch_size)
@@ -89,13 +82,10 @@ def train(training_args):
     wandb.watch(model)
 
     n_iter = training_args.num_epochs * len(train_dataloader)
-    optimizer = torch.optim.AdamW(
+    optimizer = torch.optim.Adam(
         model.parameters(),
         lr=training_args.learning_rate,
-        betas=(0.9, 0.99),
-        weight_decay=1e-2
     )
-    scheduler = OneCycleLR(optimizer, max_lr=training_args.learning_rate, total_steps=n_iter)
     loss_fn = nn.CrossEntropyLoss()
 
     checkpoint_saver = CheckpointSaver(dirpath=f'./{MODEL_WEIGHTS}', decreasing=False, top_n=1)
@@ -103,7 +93,7 @@ def train(training_args):
     for epoch in range(training_args.num_epochs):
         print(f"\n\n-------- Epoch: {epoch} --------\n")
         if training_args.do_train:
-            train_loop(train_dataloader, model, loss_fn, optimizer, scheduler, device, epoch)
+            train_loop(train_dataloader, model, loss_fn, optimizer, device, epoch)
         if training_args.do_eval_on_train:
             eval_loop(train_dataloader, model, loss_fn, device, TRAIN, epoch)
         if training_args.do_eval:
@@ -121,7 +111,7 @@ def train(training_args):
     return
 
 
-def train_loop(dataloader, model, loss_fn, optimizer, scheduler, device, epoch):
+def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
     model.train()
 
     for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc="Train Loop")):
@@ -141,9 +131,6 @@ def train_loop(dataloader, model, loss_fn, optimizer, scheduler, device, epoch):
         if ((iter_num + 1) % training_args.accumulation_steps == 0) or (iter_num + 1 == len(dataloader)):
             optimizer.step()
             optimizer.zero_grad()
-            last_lr = scheduler.get_last_lr()[0]
-            wandb.log({"lr": last_lr, EPOCH: epoch, ITERATION: iter_num})
-            scheduler.step()
 
         # Log loss
         wandb.log({"train_loop_loss": loss, EPOCH: epoch, ITERATION: iter_num})
@@ -208,13 +195,13 @@ if __name__ == '__main__':
     parser.add_argument('--num_layers', default=2, type=int,
                         help='num_layers')
 
-    parser.add_argument('--dropout', default=False, type=bool,
+    parser.add_argument('--dropout', default=0.2, type=float,
                         help='dropout')
 
     parser.add_argument('--backbone_model', default="LSTM", type=str,
                         help='backbone_model')
 
-    parser.add_argument('--bidirectional', default=False, type=bool,
+    parser.add_argument('--bidirectional', default="False", type=str,
                         help='bidirectional')
 
     parser.add_argument('--input_size', default=50, type=int,
@@ -226,19 +213,20 @@ if __name__ == '__main__':
     parser.add_argument('--embedding', default="glove-wiki-gigaword", type=str,
                         help='https://github.com/RaRe-Technologies/gensim-data')
 
-    parser.add_argument('--embedding_weight_requires_grad', default=False, type=bool,
+    parser.add_argument('--embedding_weight_requires_grad', default="False", type=str,
                         help='embedding_weight_requires_grad')
 
     parser.add_argument('--batch_size', default=16, type=int,
                         help='batch_size')
 
-    parser.add_argument('--cat_max_and_mean', default=False, type=bool,
+    parser.add_argument('--cat_max_and_mean', default="False", type=str,
                         help='cat_max_and_mean')
 
     args = parser.parse_args()
 
     with open(args.config) as config_file:
         training_args = Box(yaml.load(config_file, Loader=yaml.FullLoader))
+
 
     training_args.learning_rate = args.learning_rate
     training_args.accumulation_steps = args.accumulation_steps
@@ -247,16 +235,15 @@ if __name__ == '__main__':
     training_args.data_args.minimum_vocab_freq_threshold = args.minimum_vocab_freq_threshold
 
     training_args.model_args.dropout = args.dropout
-    training_args.model_args.embedding_weight_requires_grad = args.embedding_weight_requires_grad
-    training_args.model_args.cat_max_and_mean = args.cat_max_and_mean
+    training_args.model_args.embedding_weight_requires_grad = args.embedding_weight_requires_grad == "True"
+    training_args.model_args.cat_max_and_mean = args.cat_max_and_mean == "True"
     training_args.model_args.embedding = args.embedding
     training_args.model_args.seq_args.hidden_size = args.hidden_size
-    training_args.model_args.seq_args.bidirectional = args.bidirectional
+    training_args.model_args.seq_args.bidirectional = args.bidirectional == "True"
     training_args.model_args.seq_args.input_size = args.input_size
 
     training_args.name = f"{training_args.name}_{str(uuid.uuid4())[:8]}"
 
-    # merged_args = dict(training_args, **args_dict)
     train(Box(training_args))
 
 # https://jovian.ai/aakanksha-ns/lstm-multiclass-text-classification

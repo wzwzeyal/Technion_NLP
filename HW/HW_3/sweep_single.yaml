@@ -1,38 +1,41 @@
 program: train.py
-project: IMDB_Multiclass_final_sweep
+project: IMDB_Tutorial_single
 method: bayes
+
 metric:
   name: dev_accuracy
   goal: maximize
-early_terminate:
-  type: hyperband
-  min_iter: 3
-
 parameters:
-
   learning_rate:
-    values: [0.1, 0.01, 0.001, 0.0001, 0.00001]
+    max: 0.1
+    min: 0.00001
   accumulation_steps:
-    values: [1, 2, 4]
+    values: [4]
+  hidden_size:
+    values: [64]
+  num_layers:
+    values: [3]
 
-  data_args.batch_size:
-    values: [1, 4, 8]
-  data_args.minimum_vocab_freq_threshold:
-      values: [0, 1]
+# Tuning
+  dropout:
+    values: [0.2]
+  backbone_model:
+    values: ["LSTM"]
+  bidirectional:
+    values: [true ]
+  minimum_vocab_freq_threshold:
+    values: [1]
+  input_size:
+    values: [300]
+  embedding:
+    values: ["glove-wiki-gigaword"]
+  embedding_weight_requires_grad:
+    values: [true]
 
-  model_args.dropout:
-    values: [0.2, 0.3, 0.4]
-  model_args.weight_requires_grad:
-    values: [false, true]
-  model_args.cat_max_and_mean:
-    values: [ false, true ]
-  model_args.embedding_model:
-    values: [ "glove-wiki-gigaword", "glove-twitter", "none" ]
-  model_args.seq_args.hidden_size:
-    values: [ 256, 512 ]
-  model_args.seq_args.bidirectional:
-    values: [ false, true ]
-  model_args.seq_args.input_size:
-    values: [50, 100, 200, 300]
 
-# https://docs.wandb.ai/guides/sweeps/configuration#parameters
+# extra params
+  batch_size:
+    values: [ 64]
+  cat_max_and_mean:
+    values: [true]
+

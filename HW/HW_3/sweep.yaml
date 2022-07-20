@@ -2,45 +2,76 @@ program: train.py
 project: IMDB_Tutorial
 method: bayes
 
-# added configuration
-early_terminate:
-  type: hyperband
-  min_iter: 3
-# +++++++++++++++++++
-
 metric:
   name: dev_accuracy
   goal: maximize
 parameters:
-  learning_rate:
-    values: [0.01, 0.0001, 0.00001]
   accumulation_steps:
-    values: [1, 4, 16]
+    values: [ 1 ]
+  batch_size:
+    values: [ 8 ]
+  minimum_vocab_freq_threshold:
+    values: [0]
+  learning_rate:
+    values: [0.0001]
+  backbone_model:
+    values: [ "LSTM" ]
+  cat_max_and_mean:
+    values: [ "False" ]
+  dropout:
+    values: [ 0.2 ]
+  embedding:
+    values: [ "none" ]
+  embedding_weight_requires_grad:
+    values: [ "False" ]
+  bidirectional:
+    values: [ "True" ]
   hidden_size:
-    values: [32, 64, 128]
+    values: [256]
+  input_size:
+    values: [ 50 ]
   num_layers:
-    values: [2, 3]
+    values: [3]
 
 # Tuning
-  dropout:
-    values: [0.2]
-  backbone_model:
-    values: ["LSTM"]
-  bidirectional:
-    values: [true ]
-  minimum_vocab_freq_threshold:
-    values: [1]
-  input_size:
-    values: [ 200, 300 ]
-  embedding:
-    values: ["none", "glove-wiki-gigaword"]
-  embedding_weight_requires_grad:
-    values: [false, true]
+
+
+
+
+
+
 
 
 # extra params
-  batch_size:
-    values: [ 1, 4, 16]
-  cat_max_and_mean:
-    values: [true]
 
+
+
+
+#{'accumulation_steps': 1,
+# 'data_args': {'batch_size': 8,
+#               'eval_batch_size': 1,
+#               'max_seq_length': 64,
+#               'minimum_vocab_freq_threshold': 0,
+#               'shuffle': False},
+# 'do_eval': True,
+# 'do_eval_on_train': True,
+# 'do_infer': False,
+# 'do_test': False,
+# 'do_train': True,
+# 'learning_rate': 0.0001,
+# 'model_args': {'backbone_model': 'LSTM',
+#                'cat_max_and_mean': False,
+#                'dropout': 0.2,
+#                'embedding': 'none',
+#                'embedding_weight_requires_grad': False,
+#                'output_size': 5,
+#                'seq_args': {'batch_first': True,
+#                             'bias': True,
+#                             'bidirectional': True,
+#                             'dropout': 0.2,
+#                             'hidden_size': 256,
+#                             'input_size': 50,
+#                             'num_layers': 3}},
+# 'name': 'run',
+# 'num_epochs': 15,
+# 'seed': 42}

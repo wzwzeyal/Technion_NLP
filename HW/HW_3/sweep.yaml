@@ -13,34 +13,34 @@ metric:
   goal: maximize
 parameters:
   learning_rate:
-    values: [0.1, 0.01, 0.0001, 0.00001]
+    values: [0.01, 0.0001, 0.00001]
   accumulation_steps:
-    values: [1, 2, 4, 8, 16]
+    values: [1, 4, 16]
   hidden_size:
-    values: [32, 64, 128, 256, 512]
+    values: [32, 64, 128]
   num_layers:
-    values: [1, 2, 3, 4, 5]
+    values: [2, 3]
 
 # Tuning
   dropout:
-    values: [0.2, 0.3, 0.4]
+    values: [0.2]
   backbone_model:
-    values: ["RNN", "LSTM", "GRU"]
+    values: ["LSTM"]
   bidirectional:
-    values: [false, true ]
+    values: [true ]
   minimum_vocab_freq_threshold:
-    values: [0, 1]
+    values: [1]
   input_size:
-    values: [ 100, 200 ]
+    values: [ 200, 300 ]
   embedding:
-    values: ["none", "glove-wiki-gigaword", "glove-twitter"]
+    values: ["none", "glove-wiki-gigaword"]
   embedding_weight_requires_grad:
     values: [false, true]
 
 
 # extra params
   batch_size:
-    values: [ 64 ]
+    values: [ 1, 4, 16]
   cat_max_and_mean:
-    values: [false, true]
+    values: [true]
 

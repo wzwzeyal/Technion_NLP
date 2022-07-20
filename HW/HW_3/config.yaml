@@ -5,7 +5,7 @@ do_train: true
 do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
-do_infer: false  # infer the test result and write to a submission file
+do_infer: true  # infer the test result and write to a submission file
 
 learning_rate: 0.0001
 accumulation_steps: 1

@@ -7,29 +7,29 @@ metric:
   goal: maximize
 parameters:
   accumulation_steps:
-    values: [ 1 ]
+    values: [ 1, 2, 4 ]
   batch_size:
-    values: [ 8 ]
+    values: [ 8, 16 ]
   minimum_vocab_freq_threshold:
-    values: [0]
+    values: [0, 1]
   learning_rate:
-    values: [0.0001]
+    values: [0.001, 0.0001, 0.00001]
   backbone_model:
-    values: [ "LSTM" ]
+    values: [ "RNN", "GRU", "LSTM" ]
   cat_max_and_mean:
-    values: [ "False" ]
+    values: [ "False", "True" ]
   dropout:
     values: [ 0.2 ]
   embedding:
-    values: [ "none" ]
+    values: [ "none", "glove-wiki-gigaword" ]
   embedding_weight_requires_grad:
-    values: [ "False" ]
+    values: [ "False", "True"]
   bidirectional:
-    values: [ "True" ]
+    values: [ "False", "True"]
   hidden_size:
-    values: [256]
+    values: [ 256, 512 ]
   input_size:
-    values: [ 50 ]
+    values: [ 50, 100 ]
   num_layers:
     values: [3]
 

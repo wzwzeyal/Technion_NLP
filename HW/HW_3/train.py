@@ -66,9 +66,18 @@ def train(training_args):
     print("Loading datasets")
     train_dataset = TweetDataset(data_args, DATA_DIR / (TRAIN + CSV))
     train_dataloader = DataLoader(train_dataset, data_args.batch_size, shuffle=data_args.shuffle)
-    if training_args.do_eval:
-        dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
-        dev_dataloader = DataLoader(dev_dataset, data_args.eval_batch_size)
+    if training_args.perform_eda:
+        fig = plt.figure(1)
+        sns.countplot(x=LABEL, data=train_dataset.df)
+        wandb.log({"train_dataset balance ": fig})
+    # if training_args.do_eval:
+    dev_dataset = TweetDataset(data_args, DATA_DIR / (DEV + CSV), train_dataset.vocab)
+    if training_args.perform_eda:
+        fig = plt.figure(2)
+        sns.countplot(x=LABEL, data=dev_dataset.df)
+        wandb.log({"dev_dataset balance ": fig})
+    dev_dataloader = DataLoader(dev_dataset, data_args.eval_batch_size)
+
     if training_args.do_test:
         test_dataset = TweetDataset(data_args, DATA_DIR / (TEST + CSV), train_dataset.vocab)
         test_dataloader = DataLoader(test_dataset, data_args.eval_batch_size)

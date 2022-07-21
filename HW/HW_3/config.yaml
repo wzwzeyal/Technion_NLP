@@ -1,11 +1,12 @@
 name: run # Experiment prefix name to save in the logger
 seed: 42  # Random seed for reproducibility
 num_epochs: 25   # Number of epochs to train the model
-do_train: true
-do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
-do_eval: true  # Evaluate on dev set at the end of every epoch
+do_train: false
+do_eval_on_train: false  # Run evaluation on train set in the end of every epoch
+do_eval: false  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
-do_infer: true  # infer the test result and write to a submission file
+do_infer: false  # infer the test result and write to a submission file
+perform_eda: true
 
 learning_rate: 0.0001
 accumulation_steps: 1

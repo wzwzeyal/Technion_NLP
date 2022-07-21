@@ -20,12 +20,9 @@ class TweetDataset(Dataset):
         self.unk_token = UNK_TOKEN
         self.pad_token = PAD_TOKEN
 
-        # assert self.df.columns.tolist() == [TEXT, LABEL]
-
         # Get vocab
         if vocab is None:
-            # Tokenize all of the text using gensim.utils.tokenize(text, lowercase=True)
-            # https://stackoverflow.com/questions/51776314/how-to-concatenate-all-rows-of-a-column-of-a-data-frame-in-pandas-without-group
+            # Tokenize all the text using gensim.utils.tokenize(text, lowercase=True)
             tokenized_text = gensim.utils.tokenize(" ".join(self.df[TEXT].tolist()), lowercase=True)
 
             # # Create a set of all the unique tokens in the text
@@ -59,8 +56,6 @@ class TweetDataset(Dataset):
         pad_id = self.token2id[self.pad_token]
         self.df[TEXT_LEN] = self.df.apply(
             lambda row: len(row[INPUT_IDS]) - row[INPUT_IDS].count(pad_id), axis=1)
-        pass
-        # print(self.df.iloc[0])
 
     def __len__(self):
         # Return the length of the dataset
@@ -98,5 +93,4 @@ class TweetDataset(Dataset):
         for i in range(self.data_args.max_seq_length - len(input_ids)):
             input_ids.append(self.token2id[self.pad_token])
 
-        # return torch.LongTensor(input_ids)
         return input_ids

@@ -3,29 +3,24 @@ import uuid
 from pprint import pprint
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 import torch.nn as nn
 import yaml
 from box import Box
+from sklearn.metrics import confusion_matrix
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-import wandb
 from consts import *
 from dataloading import TweetDataset
 from modeling import TweetNet
 from utils import *
-from wandb_utils import CheckpointSaver
 
-from sklearn.metrics import confusion_matrix
-import pandas as pd
 
 def do_infer(dataloader, model, device):
     model.eval()
 
     infer_results = []
-    size = len(dataloader.dataset)
-    num_batches = len(dataloader)
     with torch.no_grad():
         for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc=f"infer")):
             input_ids, labels = input_ids.to(device), labels.to(device)
@@ -53,7 +48,6 @@ def train(training_args):
 
     pprint(training_args)
 
-    dev_dataloader = None
     test_dataloader = None
     epoch = 0
 
@@ -92,7 +86,6 @@ def train(training_args):
     model = TweetNet(model_args, train_dataset.vocab).to(device)
     wandb.watch(model)
 
-    n_iter = training_args.num_epochs * len(train_dataloader)
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=training_args.learning_rate,
@@ -118,7 +111,6 @@ def train(training_args):
     if training_args.do_infer:
         if test_dataloader is not None:
             do_infer(test_dataloader, model, device)
-
     return
 
 
@@ -133,7 +125,6 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, epoch):
         loss = loss_fn(logits, labels)
 
         # Backpropagation
-        # optimizer.zero_grad()
         loss.backward()
 
         # accumulate gradients: preform a optimization step every training_args.accumulate_grad_batches iterations, or when you reach the end of the epoch
@@ -166,7 +157,6 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
             # Compute metrics
             average_loss += loss_fn(logits, labels).item()
             preds = torch.argmax(logits, dim=1)
-            # pred = logits.argmax(dim=1)
             correct += (preds == labels).float().sum().item()
             pred_list = preds.cpu().detach().numpy()
             y_pred.extend(pred_list)
@@ -183,21 +173,6 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
                 text=f"Run {training_args.name} achieved {accuracy * 100:.2f}% !"
             )
 
-    if epoch == (training_args.num_epochs - 1):
-        if training_args.perform_eda:
-            cm = confusion_matrix(dataloader.dataset.df[LABEL], y_pred)
-            cm_df = pd.DataFrame(cm,
-                                 index=range(5),
-                                 columns=range(5))
-            fig = plt.figure(3)
-            sns.heatmap(cm_df, annot=True)
-            plt.title('Confusion Matrix')
-            plt.ylabel('Actual Values')
-            plt.xlabel('Predicted Values')
-            plt.savefig('cm.png')
-            wandb.log({"confusion matrix": wandb.Image("cm.png")})
-
-
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})
     wandb.log({f"{split}_accuracy": accuracy, EPOCH: epoch})
@@ -206,35 +181,30 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train an LSTM model on the IMDB dataset.')
     parser.add_argument('--config', default='config.yaml', type=str,
-                        help='Path to YAML config file. Defualt: config.yaml')
+                        help='Path to YAML config file. Default: config.yaml')
 
-    # with open('config.yaml', 'r') as stream:
-    #     config_vars = yaml.safe_load(stream)
-    #     pprint(config_vars)
-    #     pass
-
-    parser.add_argument('--learning_rate', default=0.001, type=float,
+    parser.add_argument('--learning_rate', default=0.0001, type=float,
                         help='learning_rate')
 
     parser.add_argument('--accumulation_steps', default=1, type=int,
                         help='accumulation_steps')
 
-    parser.add_argument('--hidden_size', default=50, type=int,
+    parser.add_argument('--hidden_size', default=512, type=int,
                         help='hidden_size')
 
-    parser.add_argument('--num_layers', default=2, type=int,
+    parser.add_argument('--num_layers', default=3, type=int,
                         help='num_layers')
 
     parser.add_argument('--dropout', default=0.2, type=float,
                         help='dropout')
 
-    parser.add_argument('--backbone_model', default="LSTM", type=str,
+    parser.add_argument('--backbone_model', default="GRU", type=str,
                         help='backbone_model')
 
     parser.add_argument('--bidirectional', default="False", type=str,
                         help='bidirectional')
 
-    parser.add_argument('--input_size', default=50, type=int,
+    parser.add_argument('--input_size', default=100, type=int,
                         help='input_size')
 
     parser.add_argument('--minimum_vocab_freq_threshold', default=1, type=int,
@@ -243,7 +213,7 @@ if __name__ == '__main__':
     parser.add_argument('--embedding', default="glove-wiki-gigaword", type=str,
                         help='https://github.com/RaRe-Technologies/gensim-data')
 
-    parser.add_argument('--embedding_weight_requires_grad', default="False", type=str,
+    parser.add_argument('--embedding_weight_requires_grad', default="True", type=str,
                         help='embedding_weight_requires_grad')
 
     parser.add_argument('--batch_size', default=16, type=int,
@@ -256,7 +226,6 @@ if __name__ == '__main__':
 
     with open(args.config) as config_file:
         training_args = Box(yaml.load(config_file, Loader=yaml.FullLoader))
-
 
     training_args.learning_rate = args.learning_rate
     training_args.accumulation_steps = args.accumulation_steps
@@ -275,7 +244,3 @@ if __name__ == '__main__':
     training_args.name = f"{training_args.name}_{str(uuid.uuid4())[:8]}"
 
     train(Box(training_args))
-
-# https://jovian.ai/aakanksha-ns/lstm-multiclass-text-classification
-# https://towardsdatascience.com/multiclass-text-classification-using-lstm-in-pytorch-eac56baed8df
-# https://www.kaggle.com/code/mlwhiz/multiclass-text-classification-pytorch

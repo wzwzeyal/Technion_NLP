@@ -1,11 +1,11 @@
 name: run # Experiment prefix name to save in the logger
 seed: 42  # Random seed for reproducibility
-num_epochs: 25   # Number of epochs to train the model
+num_epochs: 2   # Number of epochs to train the model
 do_train: true
-do_eval_on_train: false  # Run evaluation on train set in the end of every epoch
+do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch
 do_test: false  # Evaluate on test set at the end of training
-do_infer: false  # infer the test result and write to a submission file
+do_infer: true  # infer the test result and write to a submission file
 perform_eda: true
 
 learning_rate: 0.0001
@@ -16,17 +16,17 @@ data_args:
   batch_size: 8
   shuffle: True
   eval_batch_size: 1  # Batch size for evaluation
-  minimum_vocab_freq_threshold: 0
+  minimum_vocab_freq_threshold: 1
 
 model_args:
   output_size: 5  # Should correspond to the number of classes
   dropout: 0.2  # Dropout of the final classifier in the model
-  embedding_weight_requires_grad: False
-  cat_max_and_mean: False
-  backbone_model: LSTM
-  embedding: none # https://github.com/RaRe-Technologies/gensim-data
+  embedding_weight_requires_grad: True
+  cat_max_and_mean: False # consider both max and mean or onty mean
+  backbone_model: GRU
+  embedding: glove-wiki-gigaword # https://github.com/RaRe-Technologies/gensim-data
   seq_args:
-    hidden_size: 256  # Size of the hidden state of the LSTM
+    hidden_size: 512  # Size of the hidden state of the LSTM
     bidirectional: True
     input_size: 50  # Size of the input to the LSTM
     num_layers: 3

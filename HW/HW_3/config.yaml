@@ -13,7 +13,7 @@ accumulation_steps: 1
 data_args:
   max_seq_length: 64
   batch_size: 8
-  shuffle: False
+  shuffle: True
   eval_batch_size: 1  # Batch size for evaluation
   minimum_vocab_freq_threshold: 0
 

@@ -1,6 +1,6 @@
 name: run # Experiment prefix name to save in the logger
 seed: 42  # Random seed for reproducibility
-num_epochs: 2   # Number of epochs to train the model
+num_epochs: 25   # Number of epochs to train the model
 do_train: true
 do_eval_on_train: true  # Run evaluation on train set in the end of every epoch
 do_eval: true  # Evaluate on dev set at the end of every epoch

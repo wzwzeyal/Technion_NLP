@@ -194,7 +194,9 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
             plt.title('Confusion Matrix')
             plt.ylabel('Actual Values')
             plt.xlabel('Predicted Values')
-            wandb.log({"confusion matrix ": fig})
+            plt.savefig('cm.png')
+            wandb.log({"confusion matrix": wandb.Image("cm.png")})
+
 
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})

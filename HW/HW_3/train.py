@@ -17,6 +17,8 @@ from modeling import TweetNet
 from utils import *
 from wandb_utils import CheckpointSaver
 
+from sklearn.metrics import confusion_matrix
+import pandas as pd
 
 def do_infer(dataloader, model, device):
     model.eval()
@@ -153,6 +155,8 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
     num_batches = len(dataloader)
     average_loss, correct = 0, 0
 
+    y_pred = []
+
     with torch.no_grad():
         for iter_num, (input_ids, lengths, labels) in enumerate(tqdm(dataloader, desc=f"Eval loop on {split}")):
             input_ids, labels = input_ids.to(device), labels.to(device)
@@ -164,6 +168,8 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
             preds = torch.argmax(logits, dim=1)
             # pred = logits.argmax(dim=1)
             correct += (preds == labels).float().sum().item()
+            pred_list = preds.cpu().detach().numpy()
+            y_pred.extend(pred_list)
 
     # Aggregate metrics
     average_loss /= num_batches
@@ -176,6 +182,19 @@ def eval_loop(dataloader, model, loss_fn, device, split, epoch, checkpoint_saver
                 title="High Accuracy",
                 text=f"Run {training_args.name} achieved {accuracy * 100:.2f}% !"
             )
+
+    if epoch == (training_args.num_epochs - 1):
+        if training_args.perform_eda:
+            cm = confusion_matrix(dataloader.dataset.df[LABEL], y_pred)
+            cm_df = pd.DataFrame(cm,
+                                 index=range(5),
+                                 columns=range(5))
+            fig = plt.figure(3)
+            sns.heatmap(cm_df, annot=True)
+            plt.title('Confusion Matrix')
+            plt.ylabel('Actual Values')
+            plt.xlabel('Predicted Values')
+            wandb.log({"confusion matrix ": fig})
 
     # Log metrics, report everything twice for cross-model comparison too
     wandb.log({f"{split}_average_loss": average_loss, EPOCH: epoch})

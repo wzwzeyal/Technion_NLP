@@ -12,7 +12,7 @@ class TweetDataset(Dataset):
         self.file_path = file_path
 
         # Load data to dataframe
-        self.df = pd.read_csv(self.file_path)
+        self.df = pd.read_csv(self.file_path).head(100)
 
         if LABEL not in self.df.columns:
             self.df[LABEL] = -1

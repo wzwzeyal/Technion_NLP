@@ -137,4 +137,6 @@ wandb/
 #pycharm
 .idea/
 
+#data
+*.npy
 

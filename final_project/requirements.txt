@@ -1,0 +1,8 @@
+transformers
+pandas
+datasets
+torch
+sklearn
+googletrans==3.1.0a0
+matplotlib
+tqdm

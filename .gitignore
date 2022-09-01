@@ -140,3 +140,4 @@ wandb/
 #data
 *.npy
 
+/final_project/data/iahlt-release-2022-06-09/

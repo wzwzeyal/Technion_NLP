@@ -266,8 +266,19 @@ def main():
     # https://www.freecodecamp.org/news/getting-started-with-ner-models-using-huggingface/
     # https://www.analyticsvidhya.com/blog/2022/06/how-to-train-an-ner-model-with-huggingface/
 
+    dataset_csv_files_path = './data/iahlt-release-2022-06-09/ne/ar'
+    create_dataset(dataset_csv_files_path, columns=["text", "ner"], take_first_ner=False)
+
+    data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
+    # ner_dataset = load_dataset("json", data_files=data_path)
+
+    # data_args.dataset = ner_dataset['train'].train_test_split(test_size=0.9, seed=42)
+
+    # print(ner_dataset.keys())
+
     # TODO: Q: Is ner should be performed on sentences that are not tokenized ?
-    raw_datasets = load_dataset(data_args.dataset)
+    # raw_datasets = load_dataset(data_args.dataset)
+    raw_datasets = load_dataset("json", data_files=data_args.dataset_path)
     raw_datasets = preprocess_datasets(data_args, model_args, training_args, raw_datasets)
 
     # run training

@@ -44,6 +44,7 @@ def do_infer(dataloader, model, device):
 
 def train(training_args):
     # Setting up logging
+    wandb.login(key='9bce89baa843332823d504e2b87e2821826c9390')
     wandb.init(project=PROJECT_NAME, name=training_args.name, config=training_args, entity="nlpcourse")
 
     pprint(training_args)

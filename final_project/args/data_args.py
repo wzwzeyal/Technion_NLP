@@ -17,6 +17,12 @@ class DataTrainingArguments:
         default=IMDB,
         metadata={"help": "The name of the dataset to use (via the datasets library)."}
     )
+
+    dataset_path: Optional[str] = field(
+        default="to/file/sample.csv",
+        metadata={"help": "path to csv file(s)"}
+    )
+
     max_seq_length: int = field(
         default=128,
         metadata={

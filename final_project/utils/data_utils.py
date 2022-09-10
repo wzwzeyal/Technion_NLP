@@ -19,9 +19,12 @@ def load_dataset_from_files(data_args, suffix=JSON):
     return raw_datasets
 
 
-def load_dataset_to_df(path, pattern="*.biose", columns=None, take_first_ner=True):
-    print("load_dataset_to_df")
+def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
+    print("create_dataset")
     # TODO: How to handle multiple NER classifications ? (e.g. b-per | ORG)
+    output_path = f"{path}_ner_data.jsonl"
+    if os.path.exists(output_path):
+        return pd.read_json(output_path, orient="records", lines=True)
     if columns is None:
         columns = ["text", "ner"]
     all_files = glob.glob(os.path.join(path, pattern))
@@ -50,5 +53,7 @@ def load_dataset_to_df(path, pattern="*.biose", columns=None, take_first_ner=Tru
     if take_first_ner:
         res['ner'] = res['ner'].apply(lambda x: x.split('|')[0])
 
-    return res.reset_index(drop=True)
+    res.reset_index(drop=True, inplace=True)
+    res.to_json(f"{output_path}", orient="records", lines=True)
+    # return res
 

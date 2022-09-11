@@ -1,12 +1,12 @@
+import csv
 import glob
+import os
 
 import pandas as pd
-from datasets import load_dataset
-
 from consts import *
+from datasets import load_dataset
 from tqdm import tqdm
-import os
-import csv
+
 
 def load_dataset_from_files(data_args, suffix=JSON):
     data_dir = DATA_DIR / data_args.dataset
@@ -44,10 +44,10 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
 
         # remove all the NA rows
         df.dropna(inplace=True)
-        df['words'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['text'].apply(list)
-        df['ner_labels'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['ner'].apply(list)
+        df['tokens'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['text'].apply(list)
+        df['ner_tags'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['ner'].apply(list)
         df.dropna(inplace=True)
-        df = df[["words", "ner_labels"]]
+        df = df[["tokens", "ner_tags"]]
 
         res = pd.concat([res, df])
 
@@ -59,3 +59,29 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
     return output_path
     # return res
 
+
+def align_labels_with_tokens(labels, word_ids):
+    new_labels = []
+    current_word = None
+    for word_id in word_ids:
+        if word_id != current_word:
+            # Start of a new word!
+            current_word = word_id
+            label = -100 if word_id is None else labels[word_id]
+            new_labels.append(label)
+        elif word_id is None:
+            # Special token
+            new_labels.append(-100)
+        else:
+            # Same word as previous token
+            label = labels[word_id]
+
+            # If the label is B-XXX we change it to I-XXX
+            # if label % 2 == 1:
+            #     label += 1
+            if 'B-' in label:
+                label.replace('B-', 'I-')
+
+            new_labels.append(label)
+
+    return new_labels

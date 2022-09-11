@@ -16,10 +16,7 @@
 """ Finetuning the library models for sequence classification on GLUE."""
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
 
-import logging
-import os
 import random
-import sys
 
 from transformers import (
     AutoConfig,
@@ -28,20 +25,18 @@ from transformers import (
     default_data_collator,
     AutoTokenizer,
     set_seed,
-    BertTokenizerFast,
-    DataCollatorForTokenClassification,
 )
 from transformers.utils.versions import require_version
 
-# from transformers import DistilBertForTokenClassification, BertForTokenClassification
-
-from consts import *
 from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
-from utils.utils import *
+from consts import *
 from utils.data_utils import *
 from utils.train_utils import *
+from utils.utils import *
+
+# from transformers import DistilBertForTokenClassification, BertForTokenClassification
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -51,118 +46,108 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text
 
 logger = logging.getLogger(__name__)
 
-def align_labels_with_tokens(labels, word_ids):
-    new_labels = []
-    current_word = None
-    for word_id in word_ids:
-        if word_id != current_word:
-            # Start of a new word!
-            current_word = word_id
-            label = -100 if word_id is None else labels[word_id]
-            new_labels.append(label)
-        elif word_id is None:
-            # Special token
-            new_labels.append(-100)
-        else:
-            # Same word as previous token
-            label = labels[word_id]
-            # If the label is B-XXX we change it to I-XXX
-            if label % 2 == 1:
-                label += 1
-            new_labels.append(label)
-
-    return new_labels
-
-def tokenize_and_align_labels(tokenizer, examples):
-    tokenized_inputs = tokenizer(
-        examples["tokens"], truncation=True, is_split_into_words=True
-    )
-    all_labels = examples["ner_tags"]
-    new_labels = []
-    for i, labels in enumerate(all_labels):
-        word_ids = tokenized_inputs.word_ids(i)
-        new_labels.append(align_labels_with_tokens(labels, word_ids))
-
-    tokenized_inputs["labels"] = new_labels
-    return tokenized_inputs
-
 
 def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
+    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
+    inputs = tokenizer(raw_datasets["train"][12]["tokens"], is_split_into_words=True)
+    print(inputs.tokens())
+    labels = raw_datasets["train"][12]["ner_tags"]
+    word_ids = inputs.word_ids()
+    print(labels)
+    print(align_labels_with_tokens(labels, word_ids))
 
-    # Load pretrained model and tokenizer
-    # TODO: Q: what the config is used for ?
-    config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-        finetuning_task=data_args.dataset,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
+    def tokenize_and_align_labels(examples):
+        tokenized_inputs = tokenizer(
+            examples["tokens"], truncation=True, is_split_into_words=True
+        )
+        all_labels = examples["ner_tags"]
+        new_labels = []
+        for i, labels in enumerate(all_labels):
+            word_ids = tokenized_inputs.word_ids(i)
+            new_labels.append(align_labels_with_tokens(labels, word_ids))
+
+        tokenized_inputs["labels"] = new_labels
+        return tokenized_inputs
+
+    tokenized_datasets = raw_datasets.map(
+        tokenize_and_align_labels,
+        batched=True,
+        # remove_columns=raw_datasets["train"].column_names,
     )
-    tokenizer = BertTokenizerFast.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir,
-        use_fast=model_args.use_fast_tokenizer,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
-    # tokenizer = AutoTokenizer.from_pretrained(
-    #
+    return None
+    # # Load pretrained model and tokenizer
+    # # TODO: Q: what the config is used for ?
+    # config = AutoConfig.from_pretrained(
+    #     model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+    #     finetuning_task=data_args.dataset,
+    #     cache_dir=model_args.cache_dir,
+    #     revision=model_args.model_revision,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    # )
+    # tokenizer = BertTokenizerFast.from_pretrained(
+    #     model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
     #     cache_dir=model_args.cache_dir,
     #     use_fast=model_args.use_fast_tokenizer,
     #     revision=model_args.model_revision,
     #     use_auth_token=True if model_args.use_auth_token else None,
     # )
-
-    # Padding strategy
-    if data_args.pad_to_max_length:
-        padding = "max_length"
-    else:
-        # We will pad later, dynamically at batch creation, to the max sequence length in each batch
-        padding = False
-
-    if data_args.max_seq_length > tokenizer.model_max_length:
-        logger.warning(
-            f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
-            f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
-        )
-    max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
-
-    # TODO: change the preprocess_function
-    def preprocess_function(examples):
-        # Tokenize the texts
-        # args = (
-        #     (examples['text'],)
-        # )
-
-        args = (
-            (examples['words'],)
-        )
-        train_texts = examples['words']
-
-        data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
-
-        train_encodings = tokenizer(train_texts, is_split_into_words=True, return_offsets_mapping=True, padding=True,
-                                    truncation=True)
-        # result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
-        return None
-
-        # Map labels to IDs (not necessary for GLUE tasks)
-        if "label" in examples:
-            result["label"] = examples["label"]
-        return result
-
-    with training_args.main_process_first(desc="dataset map pre-processing"):
-        tokenized_datasets = raw_datasets.map(
-            preprocess_function,
-            batched=True,
-            load_from_cache_file=not data_args.overwrite_cache,
-            desc="Running tokenizer on dataset",
-        )
+    # # tokenizer = AutoTokenizer.from_pretrained(
+    # #
+    # #     cache_dir=model_args.cache_dir,
+    # #     use_fast=model_args.use_fast_tokenizer,
+    # #     revision=model_args.model_revision,
+    # #     use_auth_token=True if model_args.use_auth_token else None,
+    # # )
+    #
+    # # Padding strategy
+    # if data_args.pad_to_max_length:
+    #     padding = "max_length"
+    # else:
+    #     # We will pad later, dynamically at batch creation, to the max sequence length in each batch
+    #     padding = False
+    #
+    # if data_args.max_seq_length > tokenizer.model_max_length:
+    #     logger.warning(
+    #         f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
+    #         f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
+    #     )
+    # max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+    #
+    # # TODO: change the preprocess_function
+    # def preprocess_function(examples):
+    #     # Tokenize the texts
+    #     # args = (
+    #     #     (examples['text'],)
+    #     # )
+    #
+    #     args = (
+    #         (examples['words'],)
+    #     )
+    #     train_texts = examples['words']
+    #
+    #     data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+    #
+    #     train_encodings = tokenizer(train_texts, is_split_into_words=True, return_offsets_mapping=True, padding=True,
+    #                                 truncation=True)
+    #     # result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+    #     return None
+    #
+    #     # Map labels to IDs (not necessary for GLUE tasks)
+    #     if "label" in examples:
+    #         result["label"] = examples["label"]
+    #     return result
+    #
+    # with training_args.main_process_first(desc="dataset map pre-processing"):
+    #     tokenized_datasets = raw_datasets.map(
+    #         preprocess_function,
+    #         batched=True,
+    #         load_from_cache_file=not data_args.overwrite_cache,
+    #         desc="Running tokenizer on dataset",
+    #     )
     return tokenized_datasets
 
 
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
-
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
     config = AutoConfig.from_pretrained(
@@ -346,6 +331,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 # --output_dir . --metrics accuracy

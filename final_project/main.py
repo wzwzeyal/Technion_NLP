@@ -137,12 +137,11 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         args = (
             (examples['words'],)
         )
-
+        train_texts = examples['words']
 
         data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
 
-
-        train_encodings = tokenizer(args, is_split_into_words=True, return_offsets_mapping=True, padding=True,
+        train_encodings = tokenizer(train_texts, is_split_into_words=True, return_offsets_mapping=True, padding=True,
                                     truncation=True)
         # result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
         return None

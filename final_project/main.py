@@ -28,8 +28,12 @@ from transformers import (
     default_data_collator,
     AutoTokenizer,
     set_seed,
+    BertTokenizerFast,
+    DataCollatorForTokenClassification,
 )
 from transformers.utils.versions import require_version
+
+# from transformers import DistilBertForTokenClassification, BertForTokenClassification
 
 from consts import *
 from args.data_args import DataTrainingArguments
@@ -47,6 +51,41 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text
 
 logger = logging.getLogger(__name__)
 
+def align_labels_with_tokens(labels, word_ids):
+    new_labels = []
+    current_word = None
+    for word_id in word_ids:
+        if word_id != current_word:
+            # Start of a new word!
+            current_word = word_id
+            label = -100 if word_id is None else labels[word_id]
+            new_labels.append(label)
+        elif word_id is None:
+            # Special token
+            new_labels.append(-100)
+        else:
+            # Same word as previous token
+            label = labels[word_id]
+            # If the label is B-XXX we change it to I-XXX
+            if label % 2 == 1:
+                label += 1
+            new_labels.append(label)
+
+    return new_labels
+
+def tokenize_and_align_labels(tokenizer, examples):
+    tokenized_inputs = tokenizer(
+        examples["tokens"], truncation=True, is_split_into_words=True
+    )
+    all_labels = examples["ner_tags"]
+    new_labels = []
+    for i, labels in enumerate(all_labels):
+        word_ids = tokenized_inputs.word_ids(i)
+        new_labels.append(align_labels_with_tokens(labels, word_ids))
+
+    tokenized_inputs["labels"] = new_labels
+    return tokenized_inputs
+
 
 def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
 
@@ -59,13 +98,20 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer = BertTokenizerFast.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         use_fast=model_args.use_fast_tokenizer,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
+    # tokenizer = AutoTokenizer.from_pretrained(
+    #
+    #     cache_dir=model_args.cache_dir,
+    #     use_fast=model_args.use_fast_tokenizer,
+    #     revision=model_args.model_revision,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    # )
 
     # Padding strategy
     if data_args.pad_to_max_length:
@@ -81,12 +127,25 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         )
     max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
 
+    # TODO: change the preprocess_function
     def preprocess_function(examples):
         # Tokenize the texts
+        # args = (
+        #     (examples['text'],)
+        # )
+
         args = (
-            (examples['text'],)
+            (examples['words'],)
         )
-        result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+
+
+        data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+
+
+        train_encodings = tokenizer(args, is_split_into_words=True, return_offsets_mapping=True, padding=True,
+                                    truncation=True)
+        # result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+        return None
 
         # Map labels to IDs (not necessary for GLUE tasks)
         if "label" in examples:
@@ -245,6 +304,8 @@ def main():
     else:
         data_args, model_args, training_args = parser.parse_args_into_dataclasses()
 
+    print(f"config_version: {training_args.config_version}")
+
     # Set extra arguments here
     if training_args.run_name == AUTO:
         training_args.run_name = f"epochs={training_args.num_train_epochs}_batch={training_args.per_device_train_batch_size}_lr={training_args.learning_rate}"
@@ -266,10 +327,9 @@ def main():
     # https://www.freecodecamp.org/news/getting-started-with-ner-models-using-huggingface/
     # https://www.analyticsvidhya.com/blog/2022/06/how-to-train-an-ner-model-with-huggingface/
 
-    dataset_csv_files_path = './data/iahlt-release-2022-06-09/ne/ar'
-    create_dataset(dataset_csv_files_path, columns=["text", "ner"], take_first_ner=False)
+    dataset_path = create_dataset(data_args.dataset_path, columns=["text", "ner"], take_first_ner=False)
 
-    data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
+    # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
     # ner_dataset = load_dataset("json", data_files=data_path)
 
     # data_args.dataset = ner_dataset['train'].train_test_split(test_size=0.9, seed=42)
@@ -278,7 +338,7 @@ def main():
 
     # TODO: Q: Is ner should be performed on sentences that are not tokenized ?
     # raw_datasets = load_dataset(data_args.dataset)
-    raw_datasets = load_dataset("json", data_files=data_args.dataset_path)
+    raw_datasets = load_dataset("json", data_files=dataset_path)
     raw_datasets = preprocess_datasets(data_args, model_args, training_args, raw_datasets)
 
     # run training

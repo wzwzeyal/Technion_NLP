@@ -8,6 +8,12 @@ from consts import *
 
 @dataclass
 class ProjectTrainingArguments(TrainingArguments):
+
+    config_version: float = field(
+        default=0.0,
+        metadata={"help": "config version",}
+    )
+
     model_type: str = field(
         default=CLS,
         metadata={"help": "Type of model head: Sequence Classification (cls), Question Answering (qa) or "

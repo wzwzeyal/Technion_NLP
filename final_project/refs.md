@@ -6,3 +6,5 @@ https://www.youtube.com/watch?v=uKPBkendlxw&t=819s&ab_channel=KarndeepSingh
 https://www.youtube.com/watch?v=iY2AZYdZAr0&ab_channel=HuggingFace
 
 https://huggingface.co/docs/datasets/loading
+
+https://huggingface.co/course/en/chapter7/2?fw=pt#preparing-the-data

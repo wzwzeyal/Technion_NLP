@@ -10,3 +10,4 @@ sklearn
 transformers
 seaborn
 python-box
+datasets

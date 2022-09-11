@@ -24,7 +24,8 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
     # TODO: How to handle multiple NER classifications ? (e.g. b-per | ORG)
     output_path = f"{path}_ner_data.jsonl"
     if os.path.exists(output_path):
-        return pd.read_json(output_path, orient="records", lines=True)
+        return output_path
+
     if columns is None:
         columns = ["text", "ner"]
     all_files = glob.glob(os.path.join(path, pattern))
@@ -55,5 +56,6 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
 
     res.reset_index(drop=True, inplace=True)
     res.to_json(f"{output_path}", orient="records", lines=True)
+    return output_path
     # return res
 

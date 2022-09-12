@@ -69,10 +69,18 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         tokenized_inputs["labels"] = new_labels
         return tokenized_inputs
 
+    # for item_index in range(len(raw_datasets["train"])):
+    #     inputs = tokenizer(raw_datasets["train"][item_index]["tokens"], is_split_into_words=True)
+    #     print(inputs.tokens())
+    #     labels = raw_datasets["train"][item_index]["ner_tags"]
+    #     word_ids = inputs.word_ids()
+    #     print(labels)
+    #     print(align_labels_with_tokens(labels, word_ids))
+
     tokenized_datasets = raw_datasets.map(
         tokenize_and_align_labels,
         batched=True,
-        # remove_columns=raw_datasets["train"].column_names,
+        remove_columns=raw_datasets["train"].column_names,
     )
     return None
     # # Load pretrained model and tokenizer
@@ -321,8 +329,11 @@ def main():
     # print(ner_dataset.keys())
 
     # TODO: Q: Is ner should be performed on sentences that are not tokenized ?
-    # raw_datasets = load_dataset(data_args.dataset)
-    raw_datasets = load_dataset("json", data_files=dataset_path)
+    # raw_datasets = load_dataset("json", data_files=dataset_path)
+
+    raw_datasets = load_dataset("json", data_files=dataset_path, split="train")
+    raw_datasets = raw_datasets.train_test_split(test_size=0.3)
+
     raw_datasets = preprocess_datasets(data_args, model_args, training_args, raw_datasets)
 
     # run training

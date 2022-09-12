@@ -19,12 +19,14 @@ def load_dataset_from_files(data_args, suffix=JSON):
     return raw_datasets
 
 
-def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
+def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, force_create=False):
     print("create_dataset")
     # TODO: How to handle multiple NER classifications ? (e.g. b-per | ORG)
     output_path = f"{path}_ner_data.jsonl"
-    if os.path.exists(output_path):
-        return output_path
+
+    if not force_create:
+        if os.path.exists(output_path):
+            return output_path
 
     if columns is None:
         columns = ["text", "ner"]
@@ -67,6 +69,8 @@ def align_labels_with_tokens(labels, word_ids):
         if word_id != current_word:
             # Start of a new word!
             current_word = word_id
+            if word_id is not None and word_id >= len(labels):
+                xx = 5
             label = -100 if word_id is None else labels[word_id]
             new_labels.append(label)
         elif word_id is None:

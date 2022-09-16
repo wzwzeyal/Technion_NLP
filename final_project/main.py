@@ -98,9 +98,9 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         # result = simple_word_tokenize(sentence)
 
         # Map labels to IDs (not necessary for GLUE tasks)
-        if "ner_tags" in examples:
+        if "ner_ids" in examples:
             #  TODO: convert ner_tags to label id
-            result["label"] = examples["ner_tags"]
+            result["label"] = examples["ner_ids"]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):

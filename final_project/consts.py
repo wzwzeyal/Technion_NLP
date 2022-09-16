@@ -41,7 +41,7 @@ SPLITS = [TRAIN, VALIDATION, TEST, UNLABELED]
 # MODEL TYPES
 CLS = "cls"  # Classification
 QA = "qa"  # Question Answering
-TCLS = ""  # Token Classification
+TCLS = "tcls"  # Token Classification
 ALL_MODEL_TYPES = [CLS, QA, TCLS]
 
 # TRAINER TYPES

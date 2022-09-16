@@ -1,6 +1,7 @@
 import csv
 import glob
 import os
+from operator import itemgetter
 
 import pandas as pd
 from consts import *
@@ -19,6 +20,9 @@ def load_dataset_from_files(data_args, suffix=JSON):
     return raw_datasets
 
 
+def take_first_ner_item(ner_list):
+    return [item.split('|')[0] for item in ner_list]
+
 def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, force_create=False):
     print("create_dataset")
     # TODO: How to handle multiple NER classifications ? (e.g. b-per | ORG)
@@ -30,7 +34,7 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, f
 
     if columns is None:
         columns = ["text", "ner"]
-    all_files = glob.glob(os.path.join(path, pattern))
+    all_files = glob.glob(os.path.join(path, pattern))[:5]
 
     res = pd.DataFrame()
     for count, f in enumerate(tqdm(all_files)):
@@ -54,9 +58,17 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, f
         res = pd.concat([res, df])
 
     if take_first_ner:
-        res['ner'] = res['ner'].apply(lambda x: x.split('|')[0])
+        res['ner_tags'] = res['ner_tags'].apply(
+            lambda ner_list: [item.split('|')[0] for item in ner_list])
+            # lambda single_ner_list: single_ner_list for ner in single_ner_list    )
 
     res.reset_index(drop=True, inplace=True)
+
+    counts = res['ner_tags'].explode().value_counts()
+    labels = sorted(counts.keys())
+    d = dict(zip(labels, range(len(labels))))
+
+    res['ner_ids'] = res['ner_tags'].apply(lambda ner_list: [d[ner_tag_string] for ner_tag_string in ner_list])
 
     res.to_json(f"{output_path}", orient="records", lines=True)
 

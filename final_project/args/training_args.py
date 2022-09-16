@@ -15,7 +15,7 @@ class ProjectTrainingArguments(TrainingArguments):
     )
 
     model_type: str = field(
-        default=CLS,
+        default=TCLS,
         metadata={"help": "Type of model head: Sequence Classification (cls), Question Answering (qa) or "
                           "Token Classification (tcls).",
                   "choices": ALL_MODEL_TYPES}
@@ -35,6 +35,11 @@ class ProjectTrainingArguments(TrainingArguments):
         default=False,
         metadata={"help": "Return embedding in predict loop."}
     )
+
+    # do_train: Optional[bool] = field(
+    #     default=True,
+    #     metadata={"help": "Return embedding in predict loop."}
+    # )
 
     def __post_init__(self):
         super().__post_init__()

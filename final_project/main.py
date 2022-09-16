@@ -18,6 +18,7 @@
 
 import random
 
+from camel_tools.tokenizers.word import simple_word_tokenize
 from transformers import (
     AutoConfig,
     DataCollatorWithPadding,
@@ -93,16 +94,19 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
             (examples['tokens'],)
         )
         result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+        # sentence = " ".join(examples['tokens'])
+        # result = simple_word_tokenize(sentence)
 
         # Map labels to IDs (not necessary for GLUE tasks)
         if "ner_tags" in examples:
+            #  TODO: convert ner_tags to label id
             result["label"] = examples["ner_tags"]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
         tokenized_datasets = raw_datasets.map(
             preprocess_function,
-            batched=True,
+            batched=False,
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
         )
@@ -136,7 +140,7 @@ def preprocess_datasets_old(data_args, model_args, training_args, raw_datasets):
     #     lambda row: {'inputs': tokenizer(row['tokens'], is_split_into_words=True)}
     # )
 
-    res = align_labels(tokenizer, raw_datasets['train'][0] )
+    res = align_labels(tokenizer, raw_datasets['train'][0])
     tokenized_datasets = raw_datasets.map(
         lambda row: {'test': align_labels(tokenizer, row)}
     )
@@ -259,6 +263,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
+    training_args.do_train = True
     # Make sure datasets are here and select a subset if specified
     if training_args.do_train:
         if TRAIN not in raw_datasets:
@@ -396,7 +401,8 @@ def main():
     # https://www.freecodecamp.org/news/getting-started-with-ner-models-using-huggingface/
     # https://www.analyticsvidhya.com/blog/2022/06/how-to-train-an-ner-model-with-huggingface/
 
-    dataset_path = create_dataset(data_args.dataset_path, columns=["text", "ner"], take_first_ner=False)
+    # TODO: what about nested ner (take_first_ner=False)
+    dataset_path = create_dataset(data_args.dataset_path, columns=["text", "ner"], take_first_ner=True)
 
     # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
     # ner_dataset = load_dataset("json", data_files=data_path)
@@ -411,9 +417,9 @@ def main():
 
     # raw_datasets = raw_datasets.select(range(4))
 
-    # raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
+    raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
 
-    raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=1, test_size=1, seed=42)
+    # raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=1, test_size=1, seed=42)
 
     # https://stackoverflow.com/questions/67852880/how-can-i-handle-this-datasets-to-create-a-datasetdict
     # train_dataset, validation_dataset = raw_datasets['train'].train_test_split(test_size=0.1).values()
@@ -423,7 +429,7 @@ def main():
     raw_datasets_dict = preprocess_datasets(data_args, model_args, training_args, raw_datasets_dict)
 
     # run training
-    trainer = train_model(data_args, model_args, training_args, raw_datasets)
+    trainer = train_model(data_args, model_args, training_args, raw_datasets_dict)
 
 
 if __name__ == "__main__":

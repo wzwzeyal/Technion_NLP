@@ -1,7 +1,7 @@
 ---
 language:
 - en
-license: mit
+license: apache-2.0
 tags:
 - generated_from_trainer
 datasets:
@@ -16,7 +16,7 @@ should probably proofread and complete it, then remove this comment. -->
 
 # 
 
-This model is a fine-tuned version of [roberta-base](https://huggingface.co/roberta-base) on the IMDB dataset.
+This model is a fine-tuned version of [CAMeL-Lab/bert-base-arabic-camelbert-mix-ner](https://huggingface.co/CAMeL-Lab/bert-base-arabic-camelbert-mix-ner) on the IMDB dataset.
 
 ## Model description
 
@@ -45,7 +45,7 @@ The following hyperparameters were used during training:
 
 ### Framework versions
 
-- Transformers 4.21.1
+- Transformers 4.21.3
 - Pytorch 1.12.1+cu102
 - Datasets 2.4.0
 - Tokenizers 0.12.1

@@ -56,6 +56,60 @@ def align_labels(tokenizer, row):
 
 
 def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
+    # model_args.model_name_or_path =
+    # Load pretrained model and tokenizer
+    config = AutoConfig.from_pretrained(
+        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        finetuning_task=data_args.dataset,
+        cache_dir=model_args.cache_dir,
+        revision=model_args.model_revision,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        cache_dir=model_args.cache_dir,
+        use_fast=model_args.use_fast_tokenizer,
+        revision=model_args.model_revision,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
+
+    # Padding strategy
+    if data_args.pad_to_max_length:
+        padding = "max_length"
+    else:
+        # We will pad later, dynamically at batch creation, to the max sequence length in each batch
+        padding = False
+
+    if data_args.max_seq_length > tokenizer.model_max_length:
+        logger.warning(
+            f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
+            f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
+        )
+    max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+
+    def preprocess_function(examples):
+        # Tokenize the texts
+        args = (
+            (examples['tokens'],)
+        )
+        result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+
+        # Map labels to IDs (not necessary for GLUE tasks)
+        if "ner_tags" in examples:
+            result["label"] = examples["ner_tags"]
+        return result
+
+    with training_args.main_process_first(desc="dataset map pre-processing"):
+        tokenized_datasets = raw_datasets.map(
+            preprocess_function,
+            batched=True,
+            load_from_cache_file=not data_args.overwrite_cache,
+            desc="Running tokenizer on dataset",
+        )
+    return tokenized_datasets
+
+
+def preprocess_datasets_old(data_args, model_args, training_args, raw_datasets):
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
     inputs = tokenizer(raw_datasets["train"][0]["tokens"], is_split_into_words=True)
     print(inputs.tokens())

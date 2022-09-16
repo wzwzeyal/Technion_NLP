@@ -2,6 +2,6 @@
   "config_version": 1.1,
   "output_dir" : ".",
   "metrics": "accuracy",
-  "model_name_or_path": "onlplab/alephbert-base",
-  "dataset_path": "./data/iahlt-release-2022-06-09/ne/he"
+  "model_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
+  "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar"
 }

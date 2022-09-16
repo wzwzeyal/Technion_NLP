@@ -47,11 +47,19 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text
 logger = logging.getLogger(__name__)
 
 
+def align_labels(tokenizer, row):
+    inputs = tokenizer(row['tokens'], is_split_into_words=True)
+    labels = row["ner_tags"]
+    word_ids = inputs.word_ids()
+    aligned_labels = align_labels_with_tokens(labels, word_ids)
+    return aligned_labels
+
+
 def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
     tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)
-    inputs = tokenizer(raw_datasets["train"][12]["tokens"], is_split_into_words=True)
+    inputs = tokenizer(raw_datasets["train"][0]["tokens"], is_split_into_words=True)
     print(inputs.tokens())
-    labels = raw_datasets["train"][12]["ner_tags"]
+    labels = raw_datasets["train"][0]["ner_tags"]
     word_ids = inputs.word_ids()
     print(labels)
     print(align_labels_with_tokens(labels, word_ids))
@@ -66,14 +74,37 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
             word_ids = tokenized_inputs.word_ids(i)
             new_labels.append(align_labels_with_tokens(labels, word_ids))
 
-        tokenized_inputs["labels"] = new_labels
+        tokenized_inputs["aligned_labels"] = new_labels
         return tokenized_inputs
 
+    # row: {'tokens': [ ... ], 'ner_tags': [ ...]}
+    # tokenized_datasets = raw_datasets.map(
+    #     lambda row: {'inputs': tokenizer(row['tokens'], is_split_into_words=True)}
+    # )
+
+    res = align_labels(tokenizer, raw_datasets['train'][0] )
     tokenized_datasets = raw_datasets.map(
-        tokenize_and_align_labels,
-        batched=True,
-        # remove_columns=raw_datasets["train"].column_names,
+        lambda row: {'test': align_labels(tokenizer, row)}
     )
+
+    # tokenized_datasets = tokenized_datasets.map(
+    #     lambda row: {
+    #         'aligned_labels': align_labels_with_tokens(
+    #             row['ner_tags'],
+    #             row['inputs'].word_ids()
+    #         )
+    #     }
+    # )
+
+    print(tokenized_datasets)
+    # from sklearn.model_selection import train_test_split
+    # train_texts, val_texts, train_tags, val_tags = train_test_split(texts, tags, test_size=.2)
+
+    # tokenized_datasets = raw_datasets.map(
+    #     tokenize_and_align_labels,
+    #     batched=True,
+    #     remove_columns=raw_datasets["train"].column_names,
+    # )
     return None
     # # Load pretrained model and tokenizer
     # # TODO: Q: what the config is used for ?
@@ -322,8 +353,20 @@ def main():
 
     # TODO: Q: Is ner should be performed on sentences that are not tokenized ?
     # raw_datasets = load_dataset(data_args.dataset)
-    raw_datasets = load_dataset("json", data_files=dataset_path)
-    raw_datasets = preprocess_datasets(data_args, model_args, training_args, raw_datasets)
+    raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
+
+    # raw_datasets = raw_datasets.select(range(4))
+
+    # raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
+
+    raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=1, test_size=1, seed=42)
+
+    # https://stackoverflow.com/questions/67852880/how-can-i-handle-this-datasets-to-create-a-datasetdict
+    # train_dataset, validation_dataset = raw_datasets['train'].train_test_split(test_size=0.1).values()
+    #
+    # raw_datasets = DatasetDict({'train': train_dataset, 'val': validation_dataset})
+
+    raw_datasets_dict = preprocess_datasets(data_args, model_args, training_args, raw_datasets_dict)
 
     # run training
     trainer = train_model(data_args, model_args, training_args, raw_datasets)

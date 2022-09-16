@@ -55,7 +55,9 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True):
         res['ner'] = res['ner'].apply(lambda x: x.split('|')[0])
 
     res.reset_index(drop=True, inplace=True)
+
     res.to_json(f"{output_path}", orient="records", lines=True)
+
     return output_path
     # return res
 

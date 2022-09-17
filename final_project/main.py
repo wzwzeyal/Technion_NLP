@@ -76,6 +76,8 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
+    # tokenized_dataset = raw_datasets.map(tokenize_adjust_labels, batched=True)
+
     # Padding strategy
     if data_args.pad_to_max_length:
         padding = "max_length"
@@ -101,8 +103,8 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
 
         # Map labels to IDs (not necessary for GLUE tasks)
         if "ner_ids" in examples:
-            #  TODO: convert ner_tags to label id
-            result["label"] = examples["ner_ids"]
+            # result["label"] = examples["ner_ids"]
+            result["labels"] = examples["ner_ids"]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
@@ -111,7 +113,7 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
             batched=False,
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
-            remove_columns=raw_datasets['train'].column_names
+            # remove_columns=raw_datasets['train'].column_names
         )
     return tokenized_datasets
 
@@ -242,12 +244,17 @@ def preprocess_datasets_old(data_args, model_args, training_args, raw_datasets):
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
-    config = AutoConfig.from_pretrained(
+
+    label_names = raw_datasets['labels']
+
+    model_config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
         finetuning_task=data_args.dataset,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
+        num_labels=len(label_names)
+
     )
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
@@ -257,10 +264,13 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         use_auth_token=True if model_args.use_auth_token else None,
     )
     model_obj = get_model_obj(training_args.model_type)
+
+    # model = AutoModelForTokenClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label_names))
+
     model = model_obj.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
+        config=model_config,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
@@ -307,7 +317,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     data_collator = DataCollatorForTokenClassification(tokenizer)
 
-    train_dataset = train_dataset.remove_columns("label")
+    # train_dataset = train_dataset.remove_columns("label")
     test_len = train_dataset['input_ids']
 
     # Initialize our Trainer
@@ -413,7 +423,12 @@ def main():
     # https://www.analyticsvidhya.com/blog/2022/06/how-to-train-an-ner-model-with-huggingface/
 
     # TODO: what about nested ner (take_first_ner=False)
-    dataset_path = create_dataset(data_args.dataset_path, columns=["text", "ner"], take_first_ner=True)
+    dataset_path = create_dataset(
+        data_args.dataset_path,
+        columns=["text", "ner"],
+        take_first_ner=True,
+        force_create=data_args.force_create
+    )
 
     # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
     # ner_dataset = load_dataset("json", data_files=data_path)
@@ -426,7 +441,11 @@ def main():
     # raw_datasets = load_dataset(data_args.dataset)
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
+    ner_tags = raw_datasets_dict["train"]["ner_tags"]
+
     # raw_datasets = raw_datasets.select(range(4))
+
+    labels = {x for l in ner_tags for x in l}
 
     raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
 

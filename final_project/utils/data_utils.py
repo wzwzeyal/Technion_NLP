@@ -65,11 +65,11 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, f
     res.reset_index(drop=True, inplace=True)
 
     counts = res['ner_tags'].explode().value_counts()
-    labels = sorted(counts.keys())
-    d = dict(zip(labels, range(len(labels))))
+    features = sorted(counts.keys())
+    features_dict = dict(zip(features, range(len(features))))
 
     res['ner_ids'] = res['ner_tags'].apply(
-        lambda ner_list: [d[ner_tag_string] for ner_tag_string in ner_list]
+        lambda ner_list: [features_dict[ner_tag_string] for ner_tag_string in ner_list]
     )
 
     res.to_json(f"{output_path}", orient="records", lines=True)
@@ -105,3 +105,6 @@ def align_labels_with_tokens(labels, word_ids):
             new_labels.append(label)
 
     return new_labels
+
+
+

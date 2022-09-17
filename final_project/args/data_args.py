@@ -41,6 +41,14 @@ class DataTrainingArguments:
             "If False, will pad the samples dynamically when batching to the maximum length in the batch."
         },
     )
+
+    force_create: bool = field(
+        default=True,
+        metadata={
+            "help": "create the dataset even if a cached version exists"
+        },
+    )
+
     max_train_samples: Optional[int] = field(
         default=None,
         metadata={

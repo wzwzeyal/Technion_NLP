@@ -115,6 +115,8 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
             desc="Running tokenizer on dataset",
             # remove_columns=raw_datasets['train'].column_names
         )
+
+    tokenized_datasets['classes'] = {x for l in raw_datasets["train"]["ner_tags"] for x in l}
     return tokenized_datasets
 
 
@@ -245,7 +247,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
 
-    label_names = raw_datasets['labels']
+    classes = raw_datasets['classes']
 
     model_config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
@@ -253,7 +255,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
-        num_labels=len(label_names)
+        num_labels=len(classes)
 
     )
     tokenizer = AutoTokenizer.from_pretrained(
@@ -318,7 +320,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     data_collator = DataCollatorForTokenClassification(tokenizer)
 
     # train_dataset = train_dataset.remove_columns("label")
-    test_len = train_dataset['input_ids']
+    # train_dataset['input_ids'] = train_dataset['input_ids'].squeeze(0)
 
     # Initialize our Trainer
     trainer_obj = get_trainer(training_args.trainer_type)
@@ -445,7 +447,7 @@ def main():
 
     # raw_datasets = raw_datasets.select(range(4))
 
-    labels = {x for l in ner_tags for x in l}
+
 
     raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
 

@@ -28,6 +28,8 @@ from transformers import (
     set_seed,
 )
 from transformers.utils.versions import require_version
+from transformers import DataCollatorForTokenClassification
+
 
 from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
@@ -109,6 +111,7 @@ def preprocess_datasets(data_args, model_args, training_args, raw_datasets):
             batched=False,
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
+            remove_columns=raw_datasets['train'].column_names
         )
     return tokenized_datasets
 
@@ -263,7 +266,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    training_args.do_train = True
     # Make sure datasets are here and select a subset if specified
     if training_args.do_train:
         if TRAIN not in raw_datasets:
@@ -288,10 +290,12 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     # Log a few random samples from the training set:
     if training_args.do_train:
-        for index in random.sample(range(len(train_dataset)), 3):
+        for index in random.sample(range(len(train_dataset)), 1):
             logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
 
     compute_metrics = get_compute_metrics(training_args.metrics)
+
+    data_collator = DataCollatorForTokenClassification(tokenizer)
 
     # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
     if data_args.pad_to_max_length:
@@ -300,6 +304,11 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
     else:
         data_collator = None
+
+    data_collator = DataCollatorForTokenClassification(tokenizer)
+
+    train_dataset = train_dataset.remove_columns("label")
+    test_len = train_dataset['input_ids']
 
     # Initialize our Trainer
     trainer_obj = get_trainer(training_args.trainer_type)
@@ -379,6 +388,8 @@ def main():
         data_args, model_args, training_args = parser.parse_args_into_dataclasses()
 
     print(f"config_version: {training_args.config_version}")
+
+    os.environ["TOKENIZERS_PARALLELISM"] = str(model_args.tokenizers_parallelism).lower()
 
     # Set extra arguments here
     if training_args.run_name == AUTO:

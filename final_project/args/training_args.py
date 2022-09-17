@@ -8,10 +8,9 @@ from consts import *
 
 @dataclass
 class ProjectTrainingArguments(TrainingArguments):
-
     config_version: float = field(
         default=0.0,
-        metadata={"help": "config version",}
+        metadata={"help": "config version", }
     )
 
     model_type: str = field(
@@ -27,9 +26,10 @@ class ProjectTrainingArguments(TrainingArguments):
     )
     metrics: str = field(
         default='',
-        metadata={"help": "Names of huggingface metrics you would like to compute seperated by commas (e.g accuracy,f1). "
-                          "Notice that by default the metrics receives only predictions and labels, "
-                          "for specific behavior refer to utils.train_utils.get_compute_metrics."}
+        metadata={
+            "help": "Names of huggingface metrics you would like to compute seperated by commas (e.g accuracy,f1). "
+                    "Notice that by default the metrics receives only predictions and labels, "
+                    "for specific behavior refer to utils.train_utils.get_compute_metrics."}
     )
     return_embedding: Optional[bool] = field(
         default=False,

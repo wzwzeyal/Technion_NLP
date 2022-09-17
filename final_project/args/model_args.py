@@ -38,3 +38,9 @@ class ModelArguments:
                     "with private models)."
         },
     )
+    tokenizers_parallelism: bool = field(
+        default=False,
+        metadata={
+            "help": ""
+        },
+    )

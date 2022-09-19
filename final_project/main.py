@@ -18,7 +18,7 @@
 
 import random
 
-from camel_tools.tokenizers.word import simple_word_tokenize
+# from camel_tools.tokenizers.word import simple_word_tokenize
 from transformers import (
     AutoConfig,
     DataCollatorWithPadding,
@@ -319,10 +319,20 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     data_collator = DataCollatorForTokenClassification(tokenizer)
 
+    # TODO: remove columns
+    # token_type_ids, labels, input_ids, att_ms
     # train_dataset = train_dataset.remove_columns("label")
+
+    # TODO: repeat for eval
+
+    # TODO: check unk (there should not be since wordpiece is in characters)
+    # TODO: UD (normalize) if there are a lot of unk unicode
+
     # train_dataset['input_ids'] = train_dataset['input_ids'].squeeze(0)
 
     # Initialize our Trainer
+
+
     trainer_obj = get_trainer(training_args.trainer_type)
     trainer = trainer_obj(
         model=model,

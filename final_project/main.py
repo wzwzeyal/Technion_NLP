@@ -35,6 +35,7 @@ from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
 from consts import *
+from final_project.dataset import NERDataset
 from utils.data_utils import *
 from utils.train_utils import *
 from utils.utils import *
@@ -247,17 +248,26 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
 
-    classes = raw_datasets['classes']
-
-    model_config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-        finetuning_task=data_args.dataset,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-        num_labels=len(classes)
-
+    train_dataset = NERDataset(
+        texts=raw_datasets[TRAIN]['tokens'],
+        tags=raw_datasets[TRAIN]['ner_tags'],
+        label_list=raw_datasets.label_list,
+        model_name=model_args.model_name_or_path,
+        max_length=data_args.max_seq_length
     )
+
+
+    # classes = raw_datasets['classes']
+
+    # model_config = AutoConfig.from_pretrained(
+    #     model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+    #     finetuning_task=data_args.dataset,
+    #     cache_dir=model_args.cache_dir,
+    #     revision=model_args.model_revision,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    #     num_labels=len(classes)
+    #
+    # )
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -277,6 +287,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
+
 
     # Make sure datasets are here and select a subset if specified
     if training_args.do_train:
@@ -453,13 +464,11 @@ def main():
     # raw_datasets = load_dataset(data_args.dataset)
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
-    ner_tags = raw_datasets_dict["train"]["ner_tags"]
-
-    # raw_datasets = raw_datasets.select(range(4))
-
-
+    label_list = {x for l in raw_datasets_dict["train"]["ner_tags"] for x in l}
 
     raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
+
+    raw_datasets_dict.label_list = sorted(label_list)
 
     # raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=1, test_size=1, seed=42)
 
@@ -468,7 +477,7 @@ def main():
     #
     # raw_datasets = DatasetDict({'train': train_dataset, 'val': validation_dataset})
 
-    raw_datasets_dict = preprocess_datasets(data_args, model_args, training_args, raw_datasets_dict)
+    # raw_datasets_dict = preprocess_datasets(data_args, model_args, training_args, raw_datasets_dict)
 
     # run training
     trainer = train_model(data_args, model_args, training_args, raw_datasets_dict)

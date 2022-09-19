@@ -13,3 +13,9 @@ https://huggingface.co/course/en/chapter7/2?fw=pt
 
 CAMeL-Lab/bert-base-arabic-camelbert-mix-ner
 
+https://colab.research.google.com/drive/1M1yH8rqbxowlSd5R-jr8eBVfGbIyp1zC?usp=sharing
+
+https://colab.research.google.com/drive/128wX6r_Nz-2LZ_lROeWjWS_yTi96KR7J?usp=sharing#scrollTo=dlpic7EW0sPR
+
+
+

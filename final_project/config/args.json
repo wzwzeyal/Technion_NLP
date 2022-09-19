@@ -3,8 +3,7 @@
   "output_dir" : ".",
   "overwrite_output_dir": true,
   "metrics": "accuracy",
-  "model_name_or_path": "bert-base-multilingual-cased",
-
+  "model_name_or_path": "aubmindlab/bert-base-arabertv02",
   "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
   "do_train": true,
   "tokenizers_parallelism": false,

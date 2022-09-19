@@ -358,131 +358,131 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     trainer.train()
 
-    model_obj = get_model_obj(training_args.model_type)
-
-    # model = AutoModelForTokenClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label_names))
-
-    model = model_obj.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=model_config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
-    )
-
-    # Make sure datasets are here and select a subset if specified
-    if training_args.do_train:
-        if TRAIN not in raw_datasets:
-            raise ValueError("--do_train requires a train dataset")
-        train_dataset = raw_datasets[TRAIN]
-        if data_args.max_train_samples is not None:
-            train_dataset = train_dataset.shuffle(training_args.seed).select(range(data_args.max_train_samples))
-
-    if training_args.do_eval:
-        if TEST not in raw_datasets:  # todo and this
-            raise ValueError("--do_eval requires a validation dataset")
-        eval_dataset = raw_datasets[TEST]  # todo change this back
-        if data_args.max_eval_samples is not None:
-            eval_dataset = eval_dataset.shuffle(training_args.seed).select(range(data_args.max_eval_samples))
-
-    if training_args.do_predict:
-        if TEST not in raw_datasets:
-            raise ValueError("--do_predict requires a test dataset")
-        predict_dataset = raw_datasets[TEST]
-        if data_args.max_predict_samples is not None:
-            predict_dataset = predict_dataset.shuffle(training_args.seed).select(range(data_args.max_predict_samples))
-
-    # Log a few random samples from the training set:
-    if training_args.do_train:
-        for index in random.sample(range(len(train_dataset)), 1):
-            logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
-
-    compute_metrics = get_compute_metrics(training_args.metrics)
-
-    data_collator = DataCollatorForTokenClassification(tokenizer)
-
-    # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
-    if data_args.pad_to_max_length:
-        data_collator = default_data_collator
-    elif training_args.fp16:
-        data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
-    else:
-        data_collator = None
-
-    data_collator = DataCollatorForTokenClassification(tokenizer)
-
-    # TODO: remove columns
-    # token_type_ids, labels, input_ids, att_ms
-    # train_dataset = train_dataset.remove_columns("label")
-
-    # TODO: repeat for eval
-
-    # TODO: check unk (there should not be since wordpiece is in characters)
-    # TODO: UD (normalize) if there are a lot of unk unicode
-
-    # train_dataset['input_ids'] = train_dataset['input_ids'].squeeze(0)
-
-    # Initialize our Trainer
-
-    trainer_obj = get_trainer(training_args.trainer_type)
-    trainer = trainer_obj(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset if training_args.do_train else None,
-        eval_dataset=eval_dataset if training_args.do_eval else None,
-        compute_metrics=compute_metrics,
-        tokenizer=tokenizer,
-        data_collator=data_collator,
-    )
-
-    # Training
-    if training_args.do_train:
-        checkpoint = None
-        if training_args.resume_from_checkpoint is not None:
-            checkpoint = training_args.resume_from_checkpoint
-        train_result = trainer.train(resume_from_checkpoint=checkpoint)
-        metrics = train_result.metrics
-        max_train_samples = (
-            data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
-        )
-        metrics[TRAIN_SAMPLES] = min(max_train_samples, len(train_dataset))
-
-        # trainer.save_model()  # Saves the tokenizer too for easy upload
-
-        trainer.log_metrics(TRAIN, metrics)
-        trainer.save_metrics(TRAIN, metrics)
-        trainer.save_state()
-
-    # Evaluation
-    if training_args.do_eval:
-        logger.info("*** Evaluate ***")
-
-        tasks = [data_args.dataset]
-        eval_datasets = [eval_dataset]
-
-        for eval_dataset, task in zip(eval_datasets, tasks):
-            metrics = trainer.evaluate(eval_dataset=eval_dataset)
-
-            max_eval_samples = (
-                data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
-            )
-            metrics[EVAL_SAMPLES] = min(max_eval_samples, len(eval_dataset))
-
-            trainer.log_metrics(EVAL, metrics)
-            trainer.save_metrics(EVAL, metrics)
-
-    kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "text-classification"}
-    if data_args.dataset is not None:
-        kwargs["language"] = "en"
-        kwargs["dataset_tags"] = data_args.dataset
-        kwargs["dataset_args"] = data_args.dataset
-        kwargs["dataset"] = data_args.dataset.upper()
-
-    if training_args.push_to_hub:
-        trainer.push_to_hub(**kwargs)
-    else:
-        trainer.create_model_card(**kwargs)
+    # model_obj = get_model_obj(training_args.model_type)
+    #
+    # # model = AutoModelForTokenClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label_names))
+    #
+    # model = model_obj.from_pretrained(
+    #     model_args.model_name_or_path,
+    #     from_tf=bool(".ckpt" in model_args.model_name_or_path),
+    #     config=model_config,
+    #     cache_dir=model_args.cache_dir,
+    #     revision=model_args.model_revision,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    # )
+    #
+    # # Make sure datasets are here and select a subset if specified
+    # if training_args.do_train:
+    #     if TRAIN not in raw_datasets:
+    #         raise ValueError("--do_train requires a train dataset")
+    #     train_dataset = raw_datasets[TRAIN]
+    #     if data_args.max_train_samples is not None:
+    #         train_dataset = train_dataset.shuffle(training_args.seed).select(range(data_args.max_train_samples))
+    #
+    # if training_args.do_eval:
+    #     if TEST not in raw_datasets:  # todo and this
+    #         raise ValueError("--do_eval requires a validation dataset")
+    #     eval_dataset = raw_datasets[TEST]  # todo change this back
+    #     if data_args.max_eval_samples is not None:
+    #         eval_dataset = eval_dataset.shuffle(training_args.seed).select(range(data_args.max_eval_samples))
+    #
+    # if training_args.do_predict:
+    #     if TEST not in raw_datasets:
+    #         raise ValueError("--do_predict requires a test dataset")
+    #     predict_dataset = raw_datasets[TEST]
+    #     if data_args.max_predict_samples is not None:
+    #         predict_dataset = predict_dataset.shuffle(training_args.seed).select(range(data_args.max_predict_samples))
+    #
+    # # Log a few random samples from the training set:
+    # if training_args.do_train:
+    #     for index in random.sample(range(len(train_dataset)), 1):
+    #         logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
+    #
+    # compute_metrics = get_compute_metrics(training_args.metrics)
+    #
+    # data_collator = DataCollatorForTokenClassification(tokenizer)
+    #
+    # # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
+    # if data_args.pad_to_max_length:
+    #     data_collator = default_data_collator
+    # elif training_args.fp16:
+    #     data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
+    # else:
+    #     data_collator = None
+    #
+    # data_collator = DataCollatorForTokenClassification(tokenizer)
+    #
+    # # TODO: remove columns
+    # # token_type_ids, labels, input_ids, att_ms
+    # # train_dataset = train_dataset.remove_columns("label")
+    #
+    # # TODO: repeat for eval
+    #
+    # # TODO: check unk (there should not be since wordpiece is in characters)
+    # # TODO: UD (normalize) if there are a lot of unk unicode
+    #
+    # # train_dataset['input_ids'] = train_dataset['input_ids'].squeeze(0)
+    #
+    # # Initialize our Trainer
+    #
+    # trainer_obj = get_trainer(training_args.trainer_type)
+    # trainer = trainer_obj(
+    #     model=model,
+    #     args=training_args,
+    #     train_dataset=train_dataset if training_args.do_train else None,
+    #     eval_dataset=eval_dataset if training_args.do_eval else None,
+    #     compute_metrics=compute_metrics,
+    #     tokenizer=tokenizer,
+    #     data_collator=data_collator,
+    # )
+    #
+    # # Training
+    # if training_args.do_train:
+    #     checkpoint = None
+    #     if training_args.resume_from_checkpoint is not None:
+    #         checkpoint = training_args.resume_from_checkpoint
+    #     train_result = trainer.train(resume_from_checkpoint=checkpoint)
+    #     metrics = train_result.metrics
+    #     max_train_samples = (
+    #         data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
+    #     )
+    #     metrics[TRAIN_SAMPLES] = min(max_train_samples, len(train_dataset))
+    #
+    #     # trainer.save_model()  # Saves the tokenizer too for easy upload
+    #
+    #     trainer.log_metrics(TRAIN, metrics)
+    #     trainer.save_metrics(TRAIN, metrics)
+    #     trainer.save_state()
+    #
+    # # Evaluation
+    # if training_args.do_eval:
+    #     logger.info("*** Evaluate ***")
+    #
+    #     tasks = [data_args.dataset]
+    #     eval_datasets = [eval_dataset]
+    #
+    #     for eval_dataset, task in zip(eval_datasets, tasks):
+    #         metrics = trainer.evaluate(eval_dataset=eval_dataset)
+    #
+    #         max_eval_samples = (
+    #             data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
+    #         )
+    #         metrics[EVAL_SAMPLES] = min(max_eval_samples, len(eval_dataset))
+    #
+    #         trainer.log_metrics(EVAL, metrics)
+    #         trainer.save_metrics(EVAL, metrics)
+    #
+    # kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "text-classification"}
+    # if data_args.dataset is not None:
+    #     kwargs["language"] = "en"
+    #     kwargs["dataset_tags"] = data_args.dataset
+    #     kwargs["dataset_args"] = data_args.dataset
+    #     kwargs["dataset"] = data_args.dataset.upper()
+    #
+    # if training_args.push_to_hub:
+    #     trainer.push_to_hub(**kwargs)
+    # else:
+    #     trainer.create_model_card(**kwargs)
 
     return trainer
 

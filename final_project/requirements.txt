@@ -9,3 +9,4 @@ tqdm
 plotly
 camel_tools
 arabert
+seqeval

@@ -25,7 +25,7 @@ class ProjectTrainingArguments(TrainingArguments):
                   "choices": ALL_TRAINER_TYPES}
     )
     metrics: str = field(
-        default='',
+        default='accuracy',
         metadata={
             "help": "Names of huggingface metrics you would like to compute seperated by commas (e.g accuracy,f1). "
                     "Notice that by default the metrics receives only predictions and labels, "

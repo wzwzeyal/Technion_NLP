@@ -18,6 +18,8 @@
 
 import random
 
+import torch
+from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
 # from camel_tools.tokenizers.word import simple_word_tokenize
 from transformers import (
     AutoConfig,
@@ -27,9 +29,10 @@ from transformers import (
     AutoTokenizer,
     set_seed,
 )
-from transformers.utils.versions import require_version
 from transformers import DataCollatorForTokenClassification
-
+from transformers import TrainingArguments
+from transformers.trainer_utils import EvaluationStrategy
+from transformers.utils.versions import require_version
 
 from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
@@ -244,6 +247,34 @@ def preprocess_datasets_old(data_args, model_args, training_args, raw_datasets):
     return tokenized_datasets
 
 
+def align_predictions(predictions, label_ids, inv_label_map):
+    preds = np.argmax(predictions, axis=2)
+
+    batch_size, seq_len = preds.shape
+
+    out_label_list = [[] for _ in range(batch_size)]
+    preds_list = [[] for _ in range(batch_size)]
+
+    for i in range(batch_size):
+        for j in range(seq_len):
+            if label_ids[i, j] != torch.nn.CrossEntropyLoss().ignore_index:
+                out_label_list[i].append(inv_label_map[label_ids[i][j]])
+                preds_list[i].append(inv_label_map[preds[i][j]])
+
+    return preds_list, out_label_list
+
+
+# def compute_metrics(p):
+#     preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
+#     # print(classification_report(out_label_list, preds_list,digits=4))
+#     return {
+#         "accuracy_score": accuracy_score(out_label_list, preds_list),
+#         "precision": precision_score(out_label_list, preds_list),
+#         "recall": recall_score(out_label_list, preds_list),
+#         "f1": f1_score(out_label_list, preds_list),
+#     }
+
+
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
@@ -256,6 +287,39 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         max_length=data_args.max_seq_length
     )
 
+    test_dataset = NERDataset(
+        texts=raw_datasets[TEST]['tokens'],
+        tags=raw_datasets[TEST]['ner_tags'],
+        label_list=raw_datasets.label_list,
+        model_name=model_args.model_name_or_path,
+        max_length=data_args.max_seq_length
+    )
+
+    training_args = TrainingArguments("./train")
+    training_args.evaluate_during_training = True
+    training_args.adam_epsilon = 1e-8
+    training_args.learning_rate = 5e-5
+    training_args.fp16 = True
+    training_args.per_device_train_batch_size = 4
+    training_args.per_device_eval_batch_size = 1
+    training_args.gradient_accumulation_steps = 2
+    training_args.num_train_epochs = 8
+
+    steps_per_epoch = (len(raw_datasets[TRAIN]) // (
+            training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps))
+    total_steps = steps_per_epoch * training_args.num_train_epochs
+    print(steps_per_epoch)
+    print(total_steps)
+    # Warmup_ratio
+    warmup_ratio = 0.1
+    training_args.warmup_steps = total_steps * warmup_ratio
+
+    training_args.evaluation_strategy = EvaluationStrategy.EPOCH
+    # training_args.logging_steps = 200
+    training_args.save_steps = 100000  # don't want to save any model
+    training_args.seed = 42
+    training_args.disable_tqdm = False
+    training_args.lr_scheduler_type = 'cosine'
 
     # classes = raw_datasets['classes']
 
@@ -268,13 +332,32 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     #     num_labels=len(classes)
     #
     # )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir,
-        use_fast=model_args.use_fast_tokenizer,
-        revision=model_args.model_revision,
-        use_auth_token=True if model_args.use_auth_token else None,
+    # tokenizer = AutoTokenizer.from_pretrained(
+    #     model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+    #     cache_dir=model_args.cache_dir,
+    #     use_fast=model_args.use_fast_tokenizer,
+    #     revision=model_args.model_revision,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    # )
+
+    model_name = model_args.model_name_or_path
+
+    model_obj = AutoModelForTokenClassification.from_pretrained(
+        model_name,
+        return_dict=True, num_labels=len(raw_datasets.label_list))
+
+    compute_metrics = get_compute_metrics(["accuracy"])
+
+    trainer = Trainer(
+        model=model_obj,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=test_dataset,
+        compute_metrics=compute_metrics,
     )
+
+    trainer.train()
+
     model_obj = get_model_obj(training_args.model_type)
 
     # model = AutoModelForTokenClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label_names))
@@ -287,7 +370,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
-
 
     # Make sure datasets are here and select a subset if specified
     if training_args.do_train:
@@ -342,7 +424,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     # train_dataset['input_ids'] = train_dataset['input_ids'].squeeze(0)
 
     # Initialize our Trainer
-
 
     trainer_obj = get_trainer(training_args.trainer_type)
     trainer = trainer_obj(

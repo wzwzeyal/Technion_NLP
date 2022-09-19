@@ -1,5 +1,8 @@
 import numpy as np
 
+from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
+
+import torch
 from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForQuestionAnswering,
@@ -37,6 +40,34 @@ def get_compute_metrics(metrics):
         return result
 
     return compute_metrics
+
+def align_predictions(predictions, label_ids, inv_label_map):
+    preds = np.argmax(predictions, axis=2)
+
+    batch_size, seq_len = preds.shape
+
+    out_label_list = [[] for _ in range(batch_size)]
+    preds_list = [[] for _ in range(batch_size)]
+
+    for i in range(batch_size):
+        for j in range(seq_len):
+            if label_ids[i, j] != torch.nn.CrossEntropyLoss().ignore_index:
+                out_label_list[i].append(inv_label_map[label_ids[i][j]])
+                preds_list[i].append(inv_label_map[preds[i][j]])
+
+    return preds_list, out_label_list
+
+def compute_metrics(p):
+    preds_list, out_label_list = align_predictions(p.predictions,p.label_ids)
+    #print(classification_report(out_label_list, preds_list,digits=4))
+    return {
+        "accuracy_score": accuracy_score(out_label_list, preds_list),
+        "precision": precision_score(out_label_list, preds_list),
+        "recall": recall_score(out_label_list, preds_list),
+        "f1": f1_score(out_label_list, preds_list),
+    }
+
+
 
 
 def get_trainer(trainer_type):

@@ -1,8 +1,9 @@
 import numpy as np
-
-from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
-
 import torch
+from consts import *
+from datasets import load_metric
+from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
+from trainer import CustomTrainer
 from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForQuestionAnswering,
@@ -10,10 +11,8 @@ from transformers import (
     Trainer,
     EvalPrediction
 )
-from trainer import CustomTrainer
-from datasets import load_metric
 
-from consts import *
+inv_label_map = {}
 
 
 def get_model_obj(model_type):
@@ -36,12 +35,19 @@ def get_compute_metrics(metrics):
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
         preds = np.argmax(preds, axis=1)
-        result = {metric: metric_fn.compute(predictions=preds, references=p.label_ids)[metric] for metric, metric_fn in metrics.items()}
+        result = {metric: metric_fn.compute(predictions=preds, references=p.label_ids)[metric] for metric, metric_fn in
+                  metrics.items()}
         return result
 
     return compute_metrics
 
-def align_predictions(predictions, label_ids, inv_label_map):
+
+def update_inv_label_map(p_inv_label_map):
+    global inv_label_map
+    inv_label_map = p_inv_label_map
+
+
+def align_predictions(predictions, label_ids):
     preds = np.argmax(predictions, axis=2)
 
     batch_size, seq_len = preds.shape
@@ -57,17 +63,16 @@ def align_predictions(predictions, label_ids, inv_label_map):
 
     return preds_list, out_label_list
 
+
 def compute_metrics(p):
-    preds_list, out_label_list = align_predictions(p.predictions,p.label_ids)
-    #print(classification_report(out_label_list, preds_list,digits=4))
+    preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
+    # print(classification_report(out_label_list, preds_list,digits=4))
     return {
         "accuracy_score": accuracy_score(out_label_list, preds_list),
         "precision": precision_score(out_label_list, preds_list),
         "recall": recall_score(out_label_list, preds_list),
         "f1": f1_score(out_label_list, preds_list),
     }
-
-
 
 
 def get_trainer(trainer_type):

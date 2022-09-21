@@ -16,20 +16,13 @@
 """ Finetuning the library models for sequence classification on GLUE."""
 # You can also adapt this script on your own text classification task. Pointers for this are left as comments.
 
-import random
-
-import torch
-from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
 # from camel_tools.tokenizers.word import simple_word_tokenize
 from transformers import (
     AutoConfig,
-    DataCollatorWithPadding,
     HfArgumentParser,
-    default_data_collator,
     AutoTokenizer,
     set_seed,
 )
-from transformers import DataCollatorForTokenClassification
 from transformers import TrainingArguments
 from transformers.trainer_utils import EvaluationStrategy
 from transformers.utils.versions import require_version
@@ -247,41 +240,16 @@ def preprocess_datasets_old(data_args, model_args, training_args, raw_datasets):
     return tokenized_datasets
 
 
-def align_predictions(predictions, label_ids, inv_label_map):
-    preds = np.argmax(predictions, axis=2)
-
-    batch_size, seq_len = preds.shape
-
-    out_label_list = [[] for _ in range(batch_size)]
-    preds_list = [[] for _ in range(batch_size)]
-
-    for i in range(batch_size):
-        for j in range(seq_len):
-            if label_ids[i, j] != torch.nn.CrossEntropyLoss().ignore_index:
-                out_label_list[i].append(inv_label_map[label_ids[i][j]])
-                preds_list[i].append(inv_label_map[preds[i][j]])
-
-    return preds_list, out_label_list
-
-
-# def compute_metrics(p):
-#     preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
-#     # print(classification_report(out_label_list, preds_list,digits=4))
-#     return {
-#         "accuracy_score": accuracy_score(out_label_list, preds_list),
-#         "precision": precision_score(out_label_list, preds_list),
-#         "recall": recall_score(out_label_list, preds_list),
-#         "f1": f1_score(out_label_list, preds_list),
-#     }
-
-
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
 
+    # if data_args.max_train_samples is not None:
+    #     train_dataset = train_dataset.shuffle(training_args.seed).select(range(data_args.max_train_samples))
+
     train_dataset = NERDataset(
-        texts=raw_datasets[TRAIN]['tokens'],
-        tags=raw_datasets[TRAIN]['ner_tags'],
+        texts=raw_datasets[TRAIN]['tokens'][:100],
+        tags=raw_datasets[TRAIN]['ner_tags'][:100],
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
         max_length=data_args.max_seq_length
@@ -345,8 +313,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     model_obj = AutoModelForTokenClassification.from_pretrained(
         model_name,
         return_dict=True, num_labels=len(raw_datasets.label_list))
-
-    compute_metrics = get_compute_metrics(["accuracy"])
 
     trainer = Trainer(
         model=model_obj,
@@ -546,6 +512,10 @@ def main():
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
     label_list = {x for l in raw_datasets_dict["train"]["ner_tags"] for x in l}
+
+    update_inv_label_map(
+        {i: label for i, label in enumerate(label_list)}
+    )
 
     raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
 

@@ -8,5 +8,7 @@
   "do_train": true,
   "tokenizers_parallelism": false,
   "force_create": false,
+  "max_train_samples": 1024,
+  "max_eval_samples" : 512,
   "dataset_tag_field": "name_tags"
 }

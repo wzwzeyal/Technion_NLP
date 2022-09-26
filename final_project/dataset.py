@@ -4,9 +4,14 @@ from transformers import AutoTokenizer
 
 
 class NERDataset:
-    def __init__(self, texts, tags, label_list, model_name, max_length):
-        self.texts = texts
-        self.tags = tags
+    def __init__(self, texts, tags, label_list, model_name, max_length, nof_samples):
+        if nof_samples is None:
+            self.texts = texts
+            self.tags = tags
+        else:
+            self.texts = texts[:nof_samples]
+            self.tags = tags[:nof_samples]
+
         self.label_map = {label: i for i, label in enumerate(label_list)}
         self.preprocessor = ArabertPreprocessor(model_name.split("/")[-1])
         self.pad_token_label_id = torch.nn.CrossEntropyLoss().ignore_index

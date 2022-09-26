@@ -58,7 +58,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         tags=raw_datasets[TRAIN][data_args.dataset_tag_field][:1024],
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
-        max_length=data_args.max_seq_length
+        max_length=data_args.max_seq_length,
+        nof_samples=data_args.max_train_samples
     )
 
     test_dataset = NERDataset(
@@ -66,7 +67,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         tags=raw_datasets[TEST][data_args.dataset_tag_field],
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
-        max_length=data_args.max_seq_length
+        max_length=data_args.max_seq_length,
+        nof_samples=data_args.max_eval_samples
     )
 
     training_args = TrainingArguments("./train")

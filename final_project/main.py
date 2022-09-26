@@ -71,7 +71,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         nof_samples=data_args.max_eval_samples
     )
 
-    training_args = TrainingArguments("train_1_0")
+    training_args = TrainingArguments("train_1_1")
     training_args.evaluate_during_training = True
     training_args.adam_epsilon = 1e-8
     training_args.learning_rate = 5e-5
@@ -80,7 +80,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     # training_args.per_device_eval_batch_size = 1
     training_args.auto_find_batch_size = True
     training_args.gradient_accumulation_steps = 2
-    training_args.num_train_epochs = 4
+    training_args.num_train_epochs = 2
     training_args.load_best_model_at_end=True
 
     steps_per_epoch = (len(raw_datasets[TRAIN]) // (
@@ -94,7 +94,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     training_args.evaluation_strategy = EvaluationStrategy.EPOCH
     # training_args.logging_steps = 200
-    training_args.save_steps = 100000  # don't want to save any model
+    # training_args.save_steps = 100000  # don't want to save any model
     training_args.seed = 42
     training_args.disable_tqdm = False
     training_args.lr_scheduler_type = 'cosine'

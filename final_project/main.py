@@ -124,6 +124,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     model_obj = AutoModelForTokenClassification.from_pretrained(
         model_name,
         return_dict=True, num_labels=len(raw_datasets.label_list),
+        ignore_mismatched_sizes=True
     )
 
     trainer = Trainer(

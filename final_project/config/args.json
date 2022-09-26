@@ -3,7 +3,7 @@
   "output_dir" : ".",
   "overwrite_output_dir": true,
   "metrics": "accuracy",
-  "model_name_or_path": "xlm-roberta-large-finetuned-conll03-english",
+  "model_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
   "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
   "do_train": true,
   "tokenizers_parallelism": false,

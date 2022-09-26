@@ -138,6 +138,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     model = trainer.model
 
+    print(type(model))
     # model_obj = get_model_obj(training_args.model_type)
     #
     # # model = AutoModelForTokenClassification.from_pretrained("bert-base-multilingual-cased", num_labels=len(label_names))

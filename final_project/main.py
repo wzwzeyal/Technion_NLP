@@ -137,6 +137,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     trainer.train()
 
     model = trainer.model
+    model.save_pretrained('./save_pretrained')
 
     print(type(model))
     # model_obj = get_model_obj(training_args.model_type)

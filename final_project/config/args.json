@@ -7,7 +7,7 @@
   "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
   "do_train": true,
   "tokenizers_parallelism": false,
-  "force_create": false,
+  "force_create": true,
   "max_train_samples": 1024,
   "max_eval_samples" : 512,
   "dataset_tag_field": "name_tags"

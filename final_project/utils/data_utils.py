@@ -2,6 +2,7 @@ import csv
 import glob
 import os
 
+import numpy as np
 import pandas as pd
 from consts import *
 from datasets import load_dataset
@@ -23,8 +24,45 @@ def take_first_ner_item(ner_list):
     return [item.split('|')[0] for item in ner_list]
 
 
-def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, force_create=False):
+def process_ner_item(row, first_name_list, last_names_list):
+    name_tag = []
+    for index, tag in enumerate(row['ner_tags']):
+        if 'per' in tag.lower():
+            name = row['tokens'][index]
+            name_tag.append(is_first_last_or_none(name, first_name_list, last_names_list))
+        else:
+            name_tag.append("O")
+    return name_tag
+
+
+def is_first_last_or_none(name, first_name_list, last_names_list):
+    if name in first_name_list:
+        return "B-PER-F"
+    elif name in last_names_list:
+        return "B-PER-L"
+    return "B-PER_UNK"
+
+    # # single item:
+    # if 'per' not in item.lower():
+    #     return 'O'
+    # else:
+    #     return item
+    # return take_first_ner_item(item)
+
+
+def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
+                   pre_process_ner_tags=False):
     print("create_dataset")
+
+    lFirstName = []
+    lLastName = []
+
+    if pre_process_ner_tags:
+        lFirstName, lLastName = np.load('./data/list_names.npy', allow_pickle=True)
+
+    lFirstName = set(lFirstName) - set(lLastName)
+    lLastName = set(lLastName) - set(lFirstName)
+
     # TODO: How to handle multiple NER classifications ? (e.g. b-per | ORG)
     output_path = f"{path}_ner_data.jsonl"
 
@@ -55,56 +93,38 @@ def create_dataset(path, pattern="*.biose", columns=None, take_first_ner=True, f
         df.dropna(inplace=True)
         df = df[["tokens", "ner_tags"]]
 
+        # TODO: convert all *-PER to F or L
+
         res = pd.concat([res, df])
 
-    if take_first_ner:
-        res['ner_tags'] = res['ner_tags'].apply(
-            lambda ner_list: [item.split('|')[0] for item in ner_list])
-        # lambda single_ner_list: single_ner_list for ner in single_ner_list    )
+    # if take_first_ner:
+    #     res['ner_tags'] = res['ner_tags'].apply(
+    #         lambda ner_list: [item.split('|')[0] for item in ner_list])
+    #     # lambda single_ner_list: single_ner_list for ner in single_ner_list    )
+
+    if pre_process_ner_tags:
+        res['name_tags'] = res.apply(
+            lambda row: process_ner_item(row, lFirstName, lLastName), axis=1
+        )
+
+        name_counts = res['name_tags'].explode().value_counts()
+        name_features = sorted(name_counts.keys())
+        name_features_dict = dict(zip(name_features, range(len(name_features))))
+        res['name_ner_ids'] = res['name_tags'].apply(
+            lambda ner_list: [name_features_dict[ner_tag_string] for ner_tag_string in ner_list]
+        )
 
     res.reset_index(drop=True, inplace=True)
 
-    counts = res['ner_tags'].explode().value_counts()
-    features = sorted(counts.keys())
-    features_dict = dict(zip(features, range(len(features))))
-
-    res['ner_ids'] = res['ner_tags'].apply(
-        lambda ner_list: [features_dict[ner_tag_string] for ner_tag_string in ner_list]
+    tag_counts = res['ner_tags'].explode().value_counts()
+    tag_features = sorted(tag_counts.keys())
+    tag_features_dict = dict(zip(tag_features, range(len(tag_features))))
+    res['tag_ner_ids'] = res['ner_tags'].apply(
+        lambda ner_list: [tag_features_dict[ner_tag_string] for ner_tag_string in ner_list]
     )
+
+
 
     res.to_json(f"{output_path}", orient="records", lines=True)
 
     return output_path
-    # return res
-
-
-def align_labels_with_tokens(labels, word_ids):
-    new_labels = []
-    current_word = None
-    for word_id in word_ids:
-        if word_id != current_word:
-            # Start of a new word!
-            current_word = word_id
-            if word_id is not None and word_id >= len(labels):
-                xx = 5
-            label = -100 if word_id is None else labels[word_id]
-            new_labels.append(label)
-        elif word_id is None:
-            # Special token
-            new_labels.append(-100)
-        else:
-            # Same word as previous token
-            label = labels[word_id]
-
-            # If the label is B-XXX we change it to I-XXX
-            # if label % 2 == 1:
-            #     label += 1
-            if 'B-' in label:
-                label.replace('B-', 'I-')
-
-            new_labels.append(label)
-
-    return new_labels
-
-
-

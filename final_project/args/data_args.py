@@ -23,6 +23,11 @@ class DataTrainingArguments:
         metadata={"help": "path to csv file(s)"}
     )
 
+    dataset_tag_field: Optional[str] = field(
+        default="ner_tags",
+        metadata={"help": "path to csv file(s)"}
+    )
+
     max_seq_length: int = field(
         default=128,
         metadata={

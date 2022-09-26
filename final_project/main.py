@@ -81,7 +81,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     training_args.auto_find_batch_size = True
     training_args.gradient_accumulation_steps = 2
     training_args.num_train_epochs = 2
-    training_args.load_best_model_at_end=True
+    training_args.load_best_model_at_end = True
+    training_args.output_dir = './results'
 
     steps_per_epoch = (len(raw_datasets[TRAIN]) // (
             training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps))
@@ -134,6 +135,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     )
 
     trainer.train()
+
+    model = trainer.model
 
     # model_obj = get_model_obj(training_args.model_type)
     #
@@ -271,7 +274,7 @@ def main():
         description=DESCRIPTION,
     )
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # If we pass only one argument to the script and it's the path to a json file,
+        # If we pass only one argument to the script, and it's the path to a json file,
         # let's parse it to get our arguments.
         data_args, model_args, training_args = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])

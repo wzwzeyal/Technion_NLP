@@ -24,23 +24,23 @@ def take_first_ner_item(ner_list):
     return [item.split('|')[0] for item in ner_list]
 
 
-def process_ner_item(row, first_name_list, last_names_list):
+def process_ner_item(row, first_name_list, last_names_list, is_return_per_unk):
     name_tag = []
     for index, tag in enumerate(row['ner_tags']):
         if 'per' in tag.lower():
             name = row['tokens'][index]
-            name_tag.append(is_first_last_or_none(name, first_name_list, last_names_list))
+            name_tag.append(is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_unk))
         else:
             name_tag.append("O")
     return name_tag
 
 
-def is_first_last_or_none(name, first_name_list, last_names_list):
+def is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_unk):
     if name in first_name_list:
         return "B-PER-F"
     elif name in last_names_list:
         return "B-PER-L"
-    return "B-PER_UNK"
+    return "B-PER_UNK" if is_return_per_unk else "O"
 
     # # single item:
     # if 'per' not in item.lower():
@@ -51,7 +51,9 @@ def is_first_last_or_none(name, first_name_list, last_names_list):
 
 
 def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
-                   pre_process_ner_tags=False):
+                   pre_process_ner_tags=False,
+                   is_return_per_unk=True,
+                   remove_all_only_unk=True):
     print("create_dataset")
     print(pre_process_ner_tags)
 
@@ -95,7 +97,7 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
         df.dropna(inplace=True)
         df = df[["tokens", "ner_tags"]]
 
-        # TODO: convert all *-PER to F or L
+
 
         res = pd.concat([res, df])
 
@@ -106,7 +108,7 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
 
     if pre_process_ner_tags:
         res['name_tags'] = res.apply(
-            lambda row: process_ner_item(row, lFirstName, lLastName), axis=1
+            lambda row: process_ner_item(row, lFirstName, lLastName, is_return_per_unk), axis=1
         )
 
         name_counts = res['name_tags'].explode().value_counts()
@@ -115,6 +117,11 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
         res['name_ner_ids'] = res['name_tags'].apply(
             lambda ner_list: [name_features_dict[ner_tag_string] for ner_tag_string in ner_list]
         )
+
+        # remove all the rows containing only "O"
+        if remove_all_only_unk:
+            res['name_ner_ids_str'] = res['name_tags'].apply(lambda item: "".join(set(item)))
+            res.drop(res[res["name_ner_ids_str"] == "O"].index, inplace=True)
 
     res.reset_index(drop=True, inplace=True)
 

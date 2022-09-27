@@ -11,6 +11,10 @@ parameters:
     values: [5, 10]
   learning_rate:
     values: [1e-5, 5e-5, 1e-4]
+  is_return_per_unk:
+    values: [true, false]
+  remove_all_only_unk:
+    values: [true, false]
 #  per_device_train_batch_size:
 #    values: [2, 4, 8]
   model_name_or_path:

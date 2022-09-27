@@ -54,6 +54,20 @@ class DataTrainingArguments:
         },
     )
 
+    is_return_per_unk: bool = field(
+        default=True,
+        metadata={
+            "help": "whether to return on ?-PER unk or O"
+        },
+    )
+
+    remove_all_only_unk: bool = field(
+        default=True,
+        metadata={
+            "help": "whether to remove rows with only unk (O)"
+        },
+    )
+
     max_train_samples: Optional[int] = field(
         default=None,
         metadata={

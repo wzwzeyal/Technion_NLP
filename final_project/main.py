@@ -184,8 +184,9 @@ def main():
     dataset_path = create_dataset(
         data_args.dataset_path,
         columns=["text", "ner"],
-        pre_process_ner_tags=False,
-        force_create=data_args.force_create
+        pre_process_ner_tags=True,
+        force_create=data_args.force_create,
+        is_return_per_unk=data_args.is_return_per_unk
     )
 
     # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'

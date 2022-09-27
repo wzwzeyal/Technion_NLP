@@ -1,14 +1,14 @@
 # All configuration details could be found here https://docs.wandb.ai/guides/sweeps/
-project: template
+project: final_project_sweep
 program: main.py
 name: grid_search
-method: grid
+method: bayes
 metric:
-  goal: minimize
-  name: eval/loss
+  goal: maximize
+  name: eval/f1
 parameters:
   num_train_epochs:
-    values: [3, 4, 5]
+    values: [5, 10]
   learning_rate:
     values: [1e-5, 5e-5, 1e-4]
 #  per_device_train_batch_size:
@@ -51,6 +51,10 @@ command:
   - "false"
   - "--dataset_tag_field"
   - "name_tags"
+  - "max_train_samples"
+  - "128"
+  - "max_eval_samples"
+  - "64"
 #  - "--metrics"
 #  - "accuracy,f1"
 #  - "--do_train"

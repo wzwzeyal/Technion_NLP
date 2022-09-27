@@ -28,7 +28,7 @@ from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
 from consts import *
-from final_project.dataset import NERDataset
+from dataset import NERDataset
 from utils.data_utils import *
 from utils.train_utils import *
 from utils.utils import *
@@ -184,7 +184,7 @@ def main():
     dataset_path = create_dataset(
         data_args.dataset_path,
         columns=["text", "ner"],
-        pre_process_ner_tags=True,
+        pre_process_ner_tags=False,
         force_create=data_args.force_create
     )
 

@@ -11,8 +11,10 @@ parameters:
     values: [3, 4, 5]
   learning_rate:
     values: [1e-5, 5e-5, 1e-4]
-  per_device_train_batch_size:
-    values: [2, 4, 8]
+#  per_device_train_batch_size:
+#    values: [2, 4, 8]
+  model_name_or_path:
+    values: ["aubmindlab/bert-base-arabertv02", "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner"]
 early_terminate:
   type: hyperband
   min_iter: 90
@@ -20,26 +22,51 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
+
+#  "output_dir" : ".",
+#  "overwrite_output_dir": true,
+#  "metrics": "accuracy",
+#  "model_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
+#  "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
+#  "do_train": true,
+#  "tokenizers_parallelism": false,
+#  "force_create": false,
+#  "dataset_tag_field": "name_tags"
+
+
+
   - "--run_name"
   - "auto"
   - "--output_dir"
   - "auto"
-  - "--metrics"
-  - "accuracy,f1"
+  - "--overwrite_output_dir"
+  - "true"
+  - "--dataset_path"
+  - "./data/iahlt-release-2022-06-09/ne/ar"
   - "--do_train"
-  - "--do_eval"
-  - "--max_train_samples"
-  - "500"
-  - "--max_eval_samples"
-  - "200"
-  - "--report_to"
-  - "wandb"
-  - "--logging_strategy"
-  - "steps"
-  - "--logging_steps"
-  - "15"
-  - "--evaluation_strategy"
-  - "steps"
-  - "--eval_steps"
-  - "15"
+  - "true"
+  - "--tokenizers_parallelism"
+  - "false"
+  - "--force_create"
+  - "false"
+  - "--dataset_tag_field"
+  - "name_tags"
+#  - "--metrics"
+#  - "accuracy,f1"
+#  - "--do_train"
+#  - "--do_eval"
+#  - "--max_train_samples"
+#  - "500"
+#  - "--max_eval_samples"
+#  - "200"
+#  - "--report_to"
+#  - "wandb"
+#  - "--logging_strategy"
+#  - "steps"
+#  - "--logging_steps"
+#  - "15"
+#  - "--evaluation_strategy"
+#  - "steps"
+#  - "--eval_steps"
+#  - "15"
   - ${args}

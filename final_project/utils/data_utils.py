@@ -53,6 +53,7 @@ def is_first_last_or_none(name, first_name_list, last_names_list):
 def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
                    pre_process_ner_tags=False):
     print("create_dataset")
+    print(pre_process_ner_tags)
 
     lFirstName = []
     lLastName = []
@@ -73,6 +74,7 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
     if columns is None:
         columns = ["text", "ner"]
     all_files = glob.glob(os.path.join(path, pattern))
+    print(len(all_files))
 
     res = pd.DataFrame()
     for count, f in enumerate(tqdm(all_files)):

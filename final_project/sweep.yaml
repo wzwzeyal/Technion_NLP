@@ -52,7 +52,7 @@ command:
   - "--tokenizers_parallelism"
   - "false"
   - "--force_create"
-  - "false"
+  - "true"
   - "--dataset_tag_field"
   - "name_tags"
 #  - "--max_train_samples"

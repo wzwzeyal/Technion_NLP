@@ -54,21 +54,15 @@ def is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_
 
 
 def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
-                   pre_process_ner_tags=False,
                    is_return_per_unk=True,
                    remove_all_only_unk=True):
-
     output_path = f"{path}_ner_data.jsonl"
 
     if not force_create:
         if os.path.exists(output_path):
             return output_path
 
-    first_names = []
-    last_names = []
-
-    if pre_process_ner_tags:
-        first_names, last_names = np.load('./data/list_names.npy', allow_pickle=True)
+    first_names, last_names = np.load('./data/list_names.npy', allow_pickle=True)
 
     # remove duplicates from first / last names
     first_names = set(first_names) - set(last_names)
@@ -87,45 +81,20 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
             names=columns
         )
 
-        # create a sentence_id if all the values is null
-        df['sentence_id'] = df.isnull().all(axis=1).cumsum()
+        # Extract the tokens/ner_tags
 
-        # remove all the NA rows
-        df.dropna(inplace=True)
-        df['tokens'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['text'].apply(list)
-        df['ner_tags'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['ner'].apply(list)
-        df.dropna(inplace=True)
-        df = df[["tokens", "ner_tags"]]
+        df = extract_tokens_and_ner_tags(df)
 
-        res = pd.concat([res, df])
+        # Generate the name tags (B-PER-F/B-PER-L/B-PER-UNK)
 
-    # if take_first_ner:
-    #     res['ner_tags'] = res['ner_tags'].apply(
-    #         lambda ner_list: [item.split('|')[0] for item in ner_list])
-    #     # lambda single_ner_list: single_ner_list for ner in single_ner_list    )
-
-    if pre_process_ner_tags:
         tqdm.pandas(desc="Create name_tags (B-PER-F/B-PER-L/B-PER-UNK)")
-        res['name_tags'] = res.progress_apply(
+        df['name_tags'] = df.progress_apply(
             lambda row: process_ner_item(row, first_names, last_names, is_return_per_unk), axis=1
         )
 
-        name_counts = res['name_tags'].explode().value_counts()
-        name_features = sorted(name_counts.keys())
-        name_features_dict = dict(zip(name_features, range(len(name_features))))
-        tqdm.pandas(desc="Create name ner ids")
-        res['name_ner_ids'] = res['name_tags'].progress_apply(
-            lambda ner_list: [name_features_dict[ner_tag_string] for ner_tag_string in ner_list]
-        )
+        res = pd.concat([res, df])
 
-        # remove all the rows containing only "O"
-        if remove_all_only_unk:
-            tqdm.pandas(desc="Create ner ids string (temp column for removing all unk")
-            res['name_ner_ids_str'] = res['name_tags'].progress_apply(lambda item: "".join(set(item)))
-            res = res[res["name_ner_ids_str"] != "O"]
-            # res.drop(res[res["name_ner_ids_str"] == "O"].index, inplace=True)
-
-    res.reset_index(drop=True, inplace=True)
+    generate_ids(res)
 
     print("Finding all different ner tags ...")
     tag_counts = res['ner_tags'].explode().value_counts()
@@ -136,7 +105,41 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
         lambda ner_list: [tag_features_dict[ner_tag_string] for ner_tag_string in ner_list]
     )
 
+    # remove all the rows containing only "O"
+    if remove_all_only_unk:
+        tqdm.pandas(desc="Create ner ids string (temp column for removing all unk")
+        res['name_ner_ids_str'] = res['name_tags'].progress_apply(lambda item: "".join(set(item)))
+        res = res[res["name_ner_ids_str"] != "O"]
+
+        tqdm.pandas(desc="Create ner ids string (temp column for removing all unk")
+        res['name_ner_ids_str'] = res['ner_tags'].progress_apply(lambda item: "".join(set(item)))
+        res = res[res["name_ner_ids_str"] != "O"]
+
+
+
     print(f"saving {output_path} ...")
+    res.reset_index(drop=True, inplace=True)
     res.to_json(f"{output_path}", orient="records", lines=True)
 
     return output_path
+
+
+def generate_ids(res, source_col, dest_col):
+    name_counts = res[source_col].explode().value_counts()
+    name_features = sorted(name_counts.keys())
+    name_features_dict = dict(zip(name_features, range(len(name_features))))
+    tqdm.pandas(desc=f"Create {dest_col} from {source_col}")
+    res[dest_col] = res[source_col].progress_apply(
+        lambda ner_list: [name_features_dict[ner_tag_string] for ner_tag_string in ner_list]
+    )
+
+
+def extract_tokens_and_ner_tags(df):
+    # create a sentence_id if all the values is null
+    df['sentence_id'] = df.isnull().all(axis=1).cumsum()
+    df.dropna(inplace=True)
+    df['tokens'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['text'].apply(list)
+    df['ner_tags'] = df[['sentence_id', 'text', 'ner']].groupby(['sentence_id'])['ner'].apply(list)
+    df.dropna(inplace=True)
+    df = df[["tokens", "ner_tags"]]
+    return df

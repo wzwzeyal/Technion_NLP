@@ -20,14 +20,13 @@ from transformers import (
     HfArgumentParser,
     set_seed,
 )
-from transformers import TrainingArguments
+from transformers.integrations import WandbCallback
 from transformers.trainer_utils import EvaluationStrategy
 from transformers.utils.versions import require_version
 
 from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
-from consts import *
 from dataset import NERDataset
 from utils.data_utils import *
 from utils.train_utils import *
@@ -46,6 +45,12 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text
 logger = logging.getLogger(__name__)
 
 
+class MyWandbCallback(WandbCallback):
+    def on_train_end(self, args, state, control, model=None, tokenizer=None, **kwargs):
+        super(MyWandbCallback, self).on_train_end(args, state, control, model, tokenizer, **kwargs)
+        self._wandb.log({"test": args.seed})
+
+
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
     # Load pretrained model and tokenizer
     # TODO: Q: what the config is used for ?
@@ -59,7 +64,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
         max_length=data_args.max_seq_length,
-        nof_samples=data_args.max_train_samples
+        nof_samples=data_args.max_train_samples,
+        is_perform_word_cleaning=data_args.is_perform_word_cleaning
     )
 
     test_dataset = NERDataset(
@@ -68,61 +74,36 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
         max_length=data_args.max_seq_length,
-        nof_samples=data_args.max_eval_samples
+        nof_samples=data_args.max_eval_samples,
+        is_perform_word_cleaning=data_args.is_perform_word_cleaning
     )
 
-    training_args = TrainingArguments("train_1_1")
+    # training_args = TrainingArguments("train_1_1")
+
+    # training_args.adam_epsilon = 1e-8
+    # training_args.learning_rate = 5e-5
+    # training_args.fp16 = True
+    # training_args.auto_find_batch_size = True
+    # training_args.gradient_accumulation_steps = 2
+    # training_args.num_train_epochs = 3
+    # training_args.load_best_model_at_end = True
+    # training_args.output_dir = './results'
+
+    # steps_per_epoch = (len(raw_datasets[TRAIN]) // (
+    #         training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps))
+    # total_steps = steps_per_epoch * training_args.num_train_epochs
+    # print(steps_per_epoch)
+    # print(total_steps)
+    # # Warmup_ratio
+    # warmup_ratio = 0.1
+    # training_args.warmup_steps = total_steps * warmup_ratio
     training_args.evaluate_during_training = True
-    training_args.adam_epsilon = 1e-8
-    training_args.learning_rate = 5e-5
-    training_args.fp16 = True
-    # training_args.per_device_train_batch_size = 4
-    # training_args.per_device_eval_batch_size = 1
-    training_args.auto_find_batch_size = True
-    training_args.gradient_accumulation_steps = 2
-    training_args.num_train_epochs = 10
     training_args.load_best_model_at_end = True
-    training_args.output_dir = './results'
-
-    steps_per_epoch = (len(raw_datasets[TRAIN]) // (
-            training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps))
-    total_steps = steps_per_epoch * training_args.num_train_epochs
-    print(steps_per_epoch)
-    print(total_steps)
-    # Warmup_ratio
-    warmup_ratio = 0.1
-    training_args.warmup_steps = total_steps * warmup_ratio
-
     training_args.evaluation_strategy = EvaluationStrategy.EPOCH
-    # training_args.logging_steps = 200
-    # training_args.save_steps = 100000  # don't want to save any model
-    training_args.seed = 42
     training_args.disable_tqdm = False
-    training_args.lr_scheduler_type = 'cosine'
-
-    # classes = raw_datasets['classes']
-
-    # model_config = AutoConfig.from_pretrained(
-    #     model_args.config_name if model_args.config_name else model_args.model_name_or_path,
-    #     finetuning_task=data_args.dataset,
-    #     cache_dir=model_args.cache_dir,
-    #     revision=model_args.model_revision,
-    #     use_auth_token=True if model_args.use_auth_token else None,
-    #     num_labels=len(classes)
-    #
-    # )
-    # tokenizer = AutoTokenizer.from_pretrained(
-    #     model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-    #     cache_dir=model_args.cache_dir,
-    #     use_fast=model_args.use_fast_tokenizer,
-    #     revision=model_args.model_revision,
-    #     use_auth_token=True if model_args.use_auth_token else None,
-    # )
-
-    model_name = model_args.model_name_or_path
 
     model_obj = AutoModelForTokenClassification.from_pretrained(
-        model_name,
+        model_args.model_name_or_path,
         return_dict=True, num_labels=len(raw_datasets.label_list),
         ignore_mismatched_sizes=True
     )
@@ -135,6 +116,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         compute_metrics=compute_metrics,
     )
 
+    trainer.add_callback(MyWandbCallback())
+
     trainer.train()
 
     return trainer
@@ -142,6 +125,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
 def main():
     torch.cuda.empty_cache()
+
     parser = HfArgumentParser(
         (DataTrainingArguments, ModelArguments, ProjectTrainingArguments),
         description=DESCRIPTION,
@@ -158,6 +142,7 @@ def main():
     print(f"config_version: {training_args.config_version}")
 
     os.environ["TOKENIZERS_PARALLELISM"] = str(model_args.tokenizers_parallelism).lower()
+    # os.environ["WANDB_LOG_MODEL"] = "True"
 
     # Set extra arguments here
     if training_args.run_name == AUTO:
@@ -201,21 +186,20 @@ def main():
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
     print(data_args.dataset_tag_field)
-    label_list = {x for l in raw_datasets_dict["train"][data_args.dataset_tag_field] for x in l}
+    label_list = {x for label in raw_datasets_dict["train"][data_args.dataset_tag_field] for x in label}
 
     update_inv_label_map(
         {i: label for i, label in enumerate(label_list)}
     )
 
-    raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=0.9, seed=42)
+    raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=data_args.train_size)
 
     raw_datasets_dict.label_list = sorted(label_list)
 
     # run training
     trainer = train_model(data_args, model_args, training_args, raw_datasets_dict)
 
-    model = trainer.model
-    model.save_pretrained('./save_pretrained')
+    trainer.model.save_pretrained(SAVED_MODELS_DIR)
 
 
 if __name__ == "__main__":

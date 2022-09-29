@@ -8,5 +8,10 @@
   "do_train": true,
   "tokenizers_parallelism": false,
   "force_create": true,
-  "dataset_tag_field": "name_tags"
+  "dataset_tag_field": "name_tags",
+  "seed": 42,
+  "fp16": true,
+  "auto_find_batch_size": true,
+  "gradient_accumulation_steps": 2,
+  "lr_scheduler_type": "cosine"
 }

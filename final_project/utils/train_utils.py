@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from consts import *
 from datasets import load_metric
-from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score
+from seqeval.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
 from trainer import CustomTrainer
 from transformers import (
     AutoModelForSequenceClassification,
@@ -66,7 +66,7 @@ def align_predictions(predictions, label_ids):
 
 def compute_metrics(p):
     preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
-    # print(classification_report(out_label_list, preds_list,digits=4))
+    print(classification_report(out_label_list, preds_list,digits=4))
     return {
         "accuracy_score": accuracy_score(out_label_list, preds_list),
         "precision": precision_score(out_label_list, preds_list),

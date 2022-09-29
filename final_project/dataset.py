@@ -4,7 +4,7 @@ from transformers import AutoTokenizer
 
 
 class NERDataset:
-    def __init__(self, texts, tags, label_list, model_name, max_length, nof_samples):
+    def __init__(self, texts, tags, label_list, model_name, max_length, nof_samples, is_perform_word_cleaning):
         if nof_samples is None:
             self.texts = texts
             self.tags = tags
@@ -19,6 +19,7 @@ class NERDataset:
         # real label ids contribute to the loss later.
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
+        self.is_perform_word_cleaning = is_perform_word_cleaning
 
     def __len__(self):
         return len(self.texts)

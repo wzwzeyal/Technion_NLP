@@ -61,10 +61,17 @@ class DataTrainingArguments:
         },
     )
 
-    remove_all_only_unk: bool = field(
+    is_remove_all_only_unk: bool = field(
         default=True,
         metadata={
             "help": "whether to remove rows with only unk (O)"
+        },
+    )
+
+    is_perform_word_cleaning: bool = field(
+        default=True,
+        metadata={
+            "help": "whether to perform word cleaning"
         },
     )
 
@@ -89,6 +96,12 @@ class DataTrainingArguments:
             "value if set."
         },
     )
+    train_size: float = field(
+        default=0.8,
+        metadata={"help": "the train size (train/test split)", }
+    )
+
+
     train_file: Optional[str] = field(
         default=None, metadata={"help": "A csv or a json file containing the training data."}
     )

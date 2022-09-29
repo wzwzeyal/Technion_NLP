@@ -1,7 +1,7 @@
 # All configuration details could be found here https://docs.wandb.ai/guides/sweeps/
 project: final_project_sweep
 program: main.py
-name: grid_search
+name: bayes
 method: bayes
 metric:
   goal: maximize
@@ -13,7 +13,9 @@ parameters:
     values: [1e-5, 5e-5, 1e-4]
   is_return_per_unk:
     values: [true, false]
-  remove_all_only_unk:
+  is_remove_all_only_unk:
+    values: [true, false]
+  is_perform_word_cleaning:
     values: [true, false]
 #  per_device_train_batch_size:
 #    values: [2, 4, 8]
@@ -26,19 +28,6 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
-
-#  "output_dir" : ".",
-#  "overwrite_output_dir": true,
-#  "metrics": "accuracy",
-#  "model_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
-#  "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
-#  "do_train": true,
-#  "tokenizers_parallelism": false,
-#  "force_create": false,
-#  "dataset_tag_field": "name_tags"
-
-
-
   - "--run_name"
   - "auto"
   - "--output_dir"
@@ -55,26 +44,6 @@ command:
   - "true"
   - "--dataset_tag_field"
   - "name_tags"
-#  - "--max_train_samples"
-#  - "128"
-#  - "--max_eval_samples"
-#  - "64"
-#  - "--metrics"
-#  - "accuracy,f1"
-#  - "--do_train"
-#  - "--do_eval"
-#  - "--max_train_samples"
-#  - "500"
-#  - "--max_eval_samples"
-#  - "200"
-#  - "--report_to"
-#  - "wandb"
-#  - "--logging_strategy"
-#  - "steps"
-#  - "--logging_steps"
-#  - "15"
-#  - "--evaluation_strategy"
-#  - "steps"
-#  - "--eval_steps"
-#  - "15"
+  - "--seed"
+  - "42"
   - ${args}

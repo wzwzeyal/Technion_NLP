@@ -36,10 +36,7 @@ class ProjectTrainingArguments(TrainingArguments):
         metadata={"help": "Return embedding in predict loop."}
     )
 
-    # do_train: Optional[bool] = field(
-    #     default=True,
-    #     metadata={"help": "Return embedding in predict loop."}
-    # )
+
 
     def __post_init__(self):
         super().__post_init__()

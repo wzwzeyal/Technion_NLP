@@ -119,7 +119,10 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     trainer.add_callback(MyWandbCallback())
 
-    trainer.train()
+    checkpoint = False
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+    trainer.train(resume_from_checkpoint=checkpoint)
 
     return trainer
 

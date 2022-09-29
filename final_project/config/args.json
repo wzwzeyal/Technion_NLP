@@ -13,5 +13,6 @@
   "fp16": true,
   "auto_find_batch_size": true,
   "gradient_accumulation_steps": 2,
-  "lr_scheduler_type": "cosine"
+  "lr_scheduler_type": "cosine",
+  "resume_from_checkpoint": true
 }

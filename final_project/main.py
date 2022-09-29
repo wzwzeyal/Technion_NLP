@@ -28,6 +28,7 @@ from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
 from dataset import NERDataset
+from consts import *
 from utils.data_utils import *
 from utils.train_utils import *
 from utils.utils import *
@@ -59,8 +60,8 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     #     train_dataset = train_dataset.shuffle(training_args.seed).select(range(data_args.max_train_samples))
 
     train_dataset = NERDataset(
-        texts=raw_datasets[TRAIN]['tokens'][:1024],
-        tags=raw_datasets[TRAIN][data_args.dataset_tag_field][:1024],
+        texts=raw_datasets[TRAIN]['tokens'],
+        tags=raw_datasets[TRAIN][data_args.dataset_tag_field],
         label_list=raw_datasets.label_list,
         model_name=model_args.model_name_or_path,
         max_length=data_args.max_seq_length,
@@ -168,9 +169,8 @@ def main():
     # TODO: what about nested ner (take_first_ner=False)
     dataset_path = create_dataset(
         data_args.dataset_path,
-        columns=["text", "ner"],
+        columns=[TEXT, NER],
         force_create=data_args.force_create,
-        is_return_per_unk=data_args.is_return_per_unk
     )
 
     # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'

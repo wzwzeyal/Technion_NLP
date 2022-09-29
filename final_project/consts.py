@@ -61,6 +61,7 @@ MATTHEWS_CORRELATION = "matthews_correlation"
 
 # FEATURES
 TEXT = "text"
+NER = "ner"
 LABELS = "labels"
 INPUT_IDS = "input_ids"
 TRAIN_SAMPLES = "train_samples"

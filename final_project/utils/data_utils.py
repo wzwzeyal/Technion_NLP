@@ -27,23 +27,23 @@ def take_first_ner_item(ner_list):
     return [item.split('|')[0] for item in ner_list]
 
 
-def process_ner_item(row, first_name_list, last_names_list, is_return_per_unk):
+def process_ner_item(row, first_name_list, last_names_list):
     name_tag = []
     for index, tag in enumerate(row['ner_tags']):
         if 'per' in tag.lower():
             name = row['tokens'][index]
-            name_tag.append(is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_unk))
+            name_tag.append(is_first_last_or_none(name, first_name_list, last_names_list))
         else:
             name_tag.append("O")
     return name_tag
 
 
-def is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_unk):
+def is_first_last_or_none(name, first_name_list, last_names_list):
     if name in first_name_list:
         return "B-PER-F"
     elif name in last_names_list:
         return "B-PER-L"
-    return "B-PER_UNK" if is_return_per_unk else "O"
+    return "O"
 
     # # single item:
     # if 'per' not in item.lower():
@@ -53,15 +53,14 @@ def is_first_last_or_none(name, first_name_list, last_names_list, is_return_per_
     # return take_first_ner_item(item)
 
 
-def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
-                   is_return_per_unk=True,
-                   remove_all_only_unk=True):
+def create_dataset(path, pattern="*.biose", columns=None, force_create=False):
     output_path = f"{path}_ner_data.jsonl"
 
     if not force_create:
         if os.path.exists(output_path):
             return output_path
 
+    # load known first and last names
     first_names, last_names = np.load('./data/list_names.npy', allow_pickle=True)
 
     # remove duplicates from first / last names
@@ -82,40 +81,18 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
         )
 
         # Extract the tokens/ner_tags
-
         df = extract_tokens_and_ner_tags(df)
 
         # Generate the name tags (B-PER-F/B-PER-L/B-PER-UNK)
 
-        tqdm.pandas(desc="Create name_tags (B-PER-F/B-PER-L/B-PER-UNK)")
-        df['name_tags'] = df.progress_apply(
-            lambda row: process_ner_item(row, first_names, last_names, is_return_per_unk), axis=1
-        )
-
         res = pd.concat([res, df])
 
-    generate_ids(res)
-
-    print("Finding all different ner tags ...")
-    tag_counts = res['ner_tags'].explode().value_counts()
-    tag_features = sorted(tag_counts.keys())
-    tag_features_dict = dict(zip(tag_features, range(len(tag_features))))
-    tqdm.pandas(desc="Creating the tag ner ids")
-    res['tag_ner_ids'] = res['ner_tags'].progress_apply(
-        lambda ner_list: [tag_features_dict[ner_tag_string] for ner_tag_string in ner_list]
+    tqdm.pandas(desc="Create name_tags (B-PER-F/B-PER-L/B-PER-UNK)")
+    res['name_tags'] = res.progress_apply(
+        lambda row: process_ner_item(row, first_names, last_names), axis=1
     )
 
-    # remove all the rows containing only "O"
-    if remove_all_only_unk:
-        tqdm.pandas(desc="Create ner ids string (temp column for removing all unk")
-        res['name_ner_ids_str'] = res['name_tags'].progress_apply(lambda item: "".join(set(item)))
-        res = res[res["name_ner_ids_str"] != "O"]
-
-        tqdm.pandas(desc="Create ner ids string (temp column for removing all unk")
-        res['name_ner_ids_str'] = res['ner_tags'].progress_apply(lambda item: "".join(set(item)))
-        res = res[res["name_ner_ids_str"] != "O"]
-
-
+    # generate_ids_from_tags(res, "name_tags", "name_tags_ids")
 
     print(f"saving {output_path} ...")
     res.reset_index(drop=True, inplace=True)
@@ -124,7 +101,7 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False,
     return output_path
 
 
-def generate_ids(res, source_col, dest_col):
+def generate_ids_from_tags(res, source_col, dest_col):
     name_counts = res[source_col].explode().value_counts()
     name_features = sorted(name_counts.keys())
     name_features_dict = dict(zip(name_features, range(len(name_features))))

@@ -18,8 +18,8 @@ parameters:
     values: ["aubmindlab/bert-base-arabertv02",
              "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
              "aubmindlab/bert-base-arabertv02-twitter",
-             "aubmindlab/bert-base-arabertv2"
-             "asafaya/bert-base-arabic"
+             "aubmindlab/bert-base-arabertv2",
+             "asafaya/bert-base-arabic",
              "hatmimoha/arabic-ner"
             ]
 early_terminate:
@@ -55,8 +55,4 @@ command:
   - "2"
   - "--lr_scheduler_type"
   - "cosine"
-  - "--max_train_samples"
-  - "512"
-  - "--max_eval_samples"
-  - "128"
   - ${args}

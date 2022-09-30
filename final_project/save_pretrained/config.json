@@ -1,5 +1,5 @@
 {
-  "_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
+  "_name_or_path": "asafaya/bert-base-arabic",
   "architectures": [
     "BertForTokenClassification"
   ],
@@ -26,11 +26,12 @@
   "model_type": "bert",
   "num_attention_heads": 12,
   "num_hidden_layers": 12,
+  "output_past": true,
   "pad_token_id": 0,
   "position_embedding_type": "absolute",
   "torch_dtype": "float32",
-  "transformers_version": "4.21.3",
+  "transformers_version": "4.22.1",
   "type_vocab_size": 2,
   "use_cache": true,
-  "vocab_size": 30000
+  "vocab_size": 32000
 }

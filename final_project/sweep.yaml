@@ -8,7 +8,7 @@ metric:
   name: eval/f1
 parameters:
   num_train_epochs:
-    values: [1]
+    values: [5, 10]
   learning_rate:
     values: [1e-5, 5e-5, 1e-4]
   is_perform_word_cleaning:

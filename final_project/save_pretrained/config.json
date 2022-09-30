@@ -1,5 +1,5 @@
 {
-  "_name_or_path": "aubmindlab/bert-base-arabertv02-twitter",
+  "_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
   "architectures": [
     "BertForTokenClassification"
   ],
@@ -32,5 +32,5 @@
   "transformers_version": "4.21.3",
   "type_vocab_size": 2,
   "use_cache": true,
-  "vocab_size": 64000
+  "vocab_size": 30000
 }

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE."""
-from typing import Dict, List, Optional
 
 import torch.cuda
 import wandb
@@ -23,7 +22,6 @@ from transformers import (
     HfArgumentParser,
     set_seed,
 )
-from transformers.integrations import WandbCallback
 from transformers.trainer_utils import EvaluationStrategy
 from transformers.utils.versions import require_version
 
@@ -47,35 +45,6 @@ from utils.utils import *
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/text-classification/requirements.txt")
 
 logger = logging.getLogger(__name__)
-
-
-class MyWandbCallback(WandbCallback):
-    def on_train_end(self, args, state, control, model=None, tokenizer=None, **kwargs):
-        super(MyWandbCallback, self).on_train_end(args, state, control, model, tokenizer, **kwargs)
-        # preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
-        # print(classification_report(out_label_list, preds_list, digits=4))
-        # self._wandb.log({"test": args.seed})
-
-
-class custom_trainer(Trainer):
-
-    def __init__(self):
-        super(custom_trainer, self).__init__()
-
-    def evaluate(
-            self,
-            eval_dataset: Optional[Dataset] = None,
-            ignore_keys: Optional[List[str]] = None,
-            metric_key_prefix: str = "eval",
-    ) -> Dict[str, float]:
-        res = super(custom_trainer, self).evaluate(eval_dataset, ignore_keys, metric_key_prefix)
-        return res
-
-    def predict(
-            self, test_dataset: Dataset, ignore_keys: Optional[List[str]] = None, metric_key_prefix: str = "test"
-    ):
-        res = super(custom_trainer, self).predict(test_dataset, ignore_keys, metric_key_prefix)
-        return res
 
 
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
@@ -135,7 +104,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         ignore_mismatched_sizes=True
     )
 
-    wandb.init(project=PROJECT_NAME, name="NAME", config=training_args, entity="nlpcourse")
+    wandb.init(project=PROJECT_NAME, name="run", config=training_args, entity="nlpcourse")
 
     trainer = Trainer(
         model=model_obj,
@@ -146,12 +115,7 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
 
     )
 
-    trainer.add_callback(MyWandbCallback())
-
-    checkpoint = False
-    if training_args.resume_from_checkpoint is not None:
-        checkpoint = training_args.resume_from_checkpoint
-    trainer.train(resume_from_checkpoint=checkpoint)
+    trainer.train()
 
     predictions = trainer.predict(test_dataset=test_dataset)
     preds_list, out_label_list = align_predictions(predictions.predictions, predictions.label_ids)
@@ -180,8 +144,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     # table = wandb.Table(dataframe=class_df)
     # wandb.log({"examples": table})
     # compute_metrics(predictions)
-
-
 
     return trainer
 

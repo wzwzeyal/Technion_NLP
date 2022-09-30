@@ -74,6 +74,9 @@ def compute_metrics(p):
         "f1": f1_score(out_label_list, preds_list),
     }
 
+def calc_classification_report(p):
+    pass
+
 
 def get_trainer(trainer_type):
     if trainer_type == STANDARD:

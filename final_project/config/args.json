@@ -3,16 +3,19 @@
   "output_dir" : ".",
   "overwrite_output_dir": true,
   "metrics": "accuracy",
-  "model_name_or_path": "CAMeL-Lab/bert-base-arabic-camelbert-mix-ner",
+  "model_name_or_path": "aubmindlab/bert-base-arabertv02-twitter",
   "dataset_path": "./data/iahlt-release-2022-06-09/ne/ar",
   "do_train": true,
   "tokenizers_parallelism": false,
-  "force_create": true,
+  "force_create": false,
   "dataset_tag_field": "name_tags",
   "seed": 42,
   "fp16": true,
   "auto_find_batch_size": true,
   "gradient_accumulation_steps": 2,
   "lr_scheduler_type": "cosine",
-  "resume_from_checkpoint": true
+  "resume_from_checkpoint": false,
+  "max_train_samples": 512,
+  "max_eval_samples" : 128,
+  "num_train_epochs" : 1
 }

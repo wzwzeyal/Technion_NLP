@@ -54,20 +54,6 @@ class DataTrainingArguments:
         },
     )
 
-    is_return_per_unk: bool = field(
-        default=True,
-        metadata={
-            "help": "whether to return on ?-PER unk or O"
-        },
-    )
-
-    is_remove_all_only_unk: bool = field(
-        default=True,
-        metadata={
-            "help": "whether to remove rows with only unk (O)"
-        },
-    )
-
     is_perform_word_cleaning: bool = field(
         default=True,
         metadata={
@@ -100,7 +86,6 @@ class DataTrainingArguments:
         default=0.8,
         metadata={"help": "the train size (train/test split)", }
     )
-
 
     train_file: Optional[str] = field(
         default=None, metadata={"help": "A csv or a json file containing the training data."}

@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE."""
+from typing import Dict, List, Optional
+
 import torch.cuda
+import wandb
 # from camel_tools.tokenizers.word import simple_word_tokenize
 from transformers import (
     HfArgumentParser,
@@ -27,8 +30,8 @@ from transformers.utils.versions import require_version
 from args.data_args import DataTrainingArguments
 from args.model_args import ModelArguments
 from args.training_args import ProjectTrainingArguments
-from dataset import NERDataset
 from consts import *
+from dataset import NERDataset
 from utils.data_utils import *
 from utils.train_utils import *
 from utils.utils import *
@@ -49,7 +52,30 @@ logger = logging.getLogger(__name__)
 class MyWandbCallback(WandbCallback):
     def on_train_end(self, args, state, control, model=None, tokenizer=None, **kwargs):
         super(MyWandbCallback, self).on_train_end(args, state, control, model, tokenizer, **kwargs)
-        self._wandb.log({"test": args.seed})
+        # preds_list, out_label_list = align_predictions(p.predictions, p.label_ids)
+        # print(classification_report(out_label_list, preds_list, digits=4))
+        # self._wandb.log({"test": args.seed})
+
+
+class custom_trainer(Trainer):
+
+    def __init__(self):
+        super(custom_trainer, self).__init__()
+
+    def evaluate(
+            self,
+            eval_dataset: Optional[Dataset] = None,
+            ignore_keys: Optional[List[str]] = None,
+            metric_key_prefix: str = "eval",
+    ) -> Dict[str, float]:
+        res = super(custom_trainer, self).evaluate(eval_dataset, ignore_keys, metric_key_prefix)
+        return res
+
+    def predict(
+            self, test_dataset: Dataset, ignore_keys: Optional[List[str]] = None, metric_key_prefix: str = "test"
+    ):
+        res = super(custom_trainer, self).predict(test_dataset, ignore_keys, metric_key_prefix)
+        return res
 
 
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
@@ -109,12 +135,15 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         ignore_mismatched_sizes=True
     )
 
+    wandb.init(project=PROJECT_NAME, name="NAME", config=training_args, entity="nlpcourse")
+
     trainer = Trainer(
         model=model_obj,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=test_dataset,
         compute_metrics=compute_metrics,
+
     )
 
     trainer.add_callback(MyWandbCallback())
@@ -123,6 +152,36 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     if training_args.resume_from_checkpoint is not None:
         checkpoint = training_args.resume_from_checkpoint
     trainer.train(resume_from_checkpoint=checkpoint)
+
+    predictions = trainer.predict(test_dataset=test_dataset)
+    preds_list, out_label_list = align_predictions(predictions.predictions, predictions.label_ids)
+
+    # wandb.sklearn.plot_confusion_matrix(y_true, y_probas, labels)
+
+    class_str = classification_report(out_label_list, preds_list, digits=5)
+    class_dict = classification_report(out_label_list, preds_list, digits=5, output_dict=True)
+    print(class_str)
+    class_df = pd.DataFrame.from_dict(class_dict)
+    # wandb.log({"class_df": class_df})
+
+    pd.set_option('colheader_justify', 'center')  # FOR TABLE <th>
+    # class_df.to_html('./classification_report.html')
+
+    wandb.log({"classification_report_html": wandb.Html(class_df.to_html())})
+
+    # wandb.log({"class_str": wandb.Html(class_str)})
+    # wandb.log({'heatmap_with_text': wandb.plots.HeatMap(raw_datasets.label_list, raw_datasets.label_list,
+    #                                                     class_df.values, show_text=True)})
+
+    # wandb.sklearn.plot_confusion_matrix(out_label_list, preds_list, raw_datasets.label_list)
+
+    # wandb.log(class_dict)
+    # wandb.log({"classification_report": class_str})
+    # table = wandb.Table(dataframe=class_df)
+    # wandb.log({"examples": table})
+    # compute_metrics(predictions)
+
+
 
     return trainer
 
@@ -187,16 +246,17 @@ def main():
     # raw_datasets = load_dataset(data_args.dataset)
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
-    print(data_args.dataset_tag_field)
     label_list = {x for label in raw_datasets_dict["train"][data_args.dataset_tag_field] for x in label}
+
+    # in order to get deterministic order
+    label_list = sorted(label_list)
 
     update_inv_label_map(
         {i: label for i, label in enumerate(label_list)}
     )
 
     raw_datasets_dict = raw_datasets_dict['train'].train_test_split(train_size=data_args.train_size)
-
-    raw_datasets_dict.label_list = sorted(label_list)
+    raw_datasets_dict.label_list = label_list
 
     # run training
     trainer = train_model(data_args, model_args, training_args, raw_datasets_dict)

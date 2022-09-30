@@ -143,3 +143,5 @@ wandb/
 /final_project/data/iahlt-release-2022-06-09/
 *.csv
 /final_project/data/iahlt-release-2022-06-09.zip
+*.bin
+*.html

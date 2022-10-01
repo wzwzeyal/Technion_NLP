@@ -49,10 +49,6 @@ logger = logging.getLogger(__name__)
 
 def train_model(data_args, model_args, training_args, raw_datasets, iteration=0):
     # Load pretrained model and tokenizer
-    # TODO: Q: what the config is used for ?
-
-    # if data_args.max_train_samples is not None:
-    #     train_dataset = train_dataset.shuffle(training_args.seed).select(range(data_args.max_train_samples))
 
     train_dataset = NERDataset(
         texts=raw_datasets[TRAIN]['tokens'],
@@ -74,25 +70,6 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
         is_perform_word_cleaning=data_args.is_perform_word_cleaning
     )
 
-    # training_args = TrainingArguments("train_1_1")
-
-    # training_args.adam_epsilon = 1e-8
-    # training_args.learning_rate = 5e-5
-    # training_args.fp16 = True
-    # training_args.auto_find_batch_size = True
-    # training_args.gradient_accumulation_steps = 2
-    # training_args.num_train_epochs = 3
-    # training_args.load_best_model_at_end = True
-    # training_args.output_dir = './results'
-
-    # steps_per_epoch = (len(raw_datasets[TRAIN]) // (
-    #         training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps))
-    # total_steps = steps_per_epoch * training_args.num_train_epochs
-    # print(steps_per_epoch)
-    # print(total_steps)
-    # # Warmup_ratio
-    # warmup_ratio = 0.1
-    # training_args.warmup_steps = total_steps * warmup_ratio
     training_args.evaluate_during_training = True
     training_args.load_best_model_at_end = True
     training_args.evaluation_strategy = EvaluationStrategy.EPOCH
@@ -120,30 +97,11 @@ def train_model(data_args, model_args, training_args, raw_datasets, iteration=0)
     predictions = trainer.predict(test_dataset=test_dataset)
     preds_list, out_label_list = align_predictions(predictions.predictions, predictions.label_ids)
 
-    # wandb.sklearn.plot_confusion_matrix(y_true, y_probas, labels)
-
-    class_str = classification_report(out_label_list, preds_list, digits=5)
     class_dict = classification_report(out_label_list, preds_list, digits=5, output_dict=True)
-    print(class_str)
     class_df = pd.DataFrame.from_dict(class_dict)
-    # wandb.log({"class_df": class_df})
 
     pd.set_option('colheader_justify', 'center')  # FOR TABLE <th>
-    # class_df.to_html('./classification_report.html')
-
     wandb.log({"classification_report_html": wandb.Html(class_df.to_html())})
-
-    # wandb.log({"class_str": wandb.Html(class_str)})
-    # wandb.log({'heatmap_with_text': wandb.plots.HeatMap(raw_datasets.label_list, raw_datasets.label_list,
-    #                                                     class_df.values, show_text=True)})
-
-    # wandb.sklearn.plot_confusion_matrix(out_label_list, preds_list, raw_datasets.label_list)
-
-    # wandb.log(class_dict)
-    # wandb.log({"classification_report": class_str})
-    # table = wandb.Table(dataframe=class_df)
-    # wandb.log({"examples": table})
-    # compute_metrics(predictions)
 
     return trainer
 
@@ -184,28 +142,17 @@ def main():
     set_seed(training_args.seed)
 
     # Load datasets
-    # TODO: 1. replace load_dataset with my own dataset
     # https://huggingface.co/docs/datasets/loading
     # https://wandb.ai/biased-ai/Named-Entity%20Recognition%20on%20HuggingFace/reports/Named-Entity-Recognition-on-HuggingFace--Vmlldzo3NTk4NjY
     # https://www.freecodecamp.org/news/getting-started-with-ner-models-using-huggingface/
     # https://www.analyticsvidhya.com/blog/2022/06/how-to-train-an-ner-model-with-huggingface/
 
-    # TODO: what about nested ner (take_first_ner=False)
     dataset_path = create_dataset(
         data_args.dataset_path,
         columns=[TEXT, NER],
         force_create=data_args.force_create,
     )
 
-    # data_args.dataset_path = './data/iahlt-release-2022-06-09/ne/ar_ner_data.jsonl'
-    # ner_dataset = load_dataset("json", data_files=data_path)
-
-    # data_args.dataset = ner_dataset['train'].train_test_split(test_size=0.9, seed=42)
-
-    # print(ner_dataset.keys())
-
-    # TODO: Q: Is ner should be performed on sentences that are not tokenized ?
-    # raw_datasets = load_dataset(data_args.dataset)
     raw_datasets_dict = load_dataset("json", data_files=dataset_path, )
 
     label_list = {x for label in raw_datasets_dict["train"][data_args.dataset_tag_field] for x in label}
@@ -229,4 +176,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# --output_dir . --metrics accuracy
+# ./config/args.json

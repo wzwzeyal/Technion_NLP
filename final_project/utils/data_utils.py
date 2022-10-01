@@ -45,14 +45,6 @@ def is_first_last_or_none(name, first_name_list, last_names_list):
         return "B-PER-L"
     return "O"
 
-    # # single item:
-    # if 'per' not in item.lower():
-    #     return 'O'
-    # else:
-    #     return item
-    # return take_first_ner_item(item)
-
-
 def create_dataset(path, pattern="*.biose", columns=None, force_create=False):
     output_path = f"{path}_ner_data.jsonl"
 
@@ -91,8 +83,6 @@ def create_dataset(path, pattern="*.biose", columns=None, force_create=False):
     res['name_tags'] = res.progress_apply(
         lambda row: process_ner_item(row, first_names, last_names), axis=1
     )
-
-    # generate_ids_from_tags(res, "name_tags", "name_tags_ids")
 
     print(f"saving {output_path} ...")
     res.reset_index(drop=True, inplace=True)
